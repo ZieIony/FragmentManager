@@ -1,6 +1,7 @@
 package pl.zielony.fragmentmanager;
 
 import android.app.Activity;
+import android.content.Context;
 import android.os.Bundle;
 import android.os.Handler;
 import android.view.View;
@@ -24,8 +25,8 @@ public abstract class Fragment {
     private FragmentManager fragmentManager;
     private boolean running;
 
-    public Fragment(Activity activity, FragmentManager fragmentManager) {
-        this.activity = activity;
+    public Fragment(FragmentManager fragmentManager) {
+        this.activity = fragmentManager.getActivity();
         this.fragmentManager = fragmentManager;
         handler = new Handler();
         view = onCreateView();
@@ -64,6 +65,10 @@ public abstract class Fragment {
     }
 
     public Activity getActivity() {
+        return activity;
+    }
+
+    public Context getContext() {
         return activity;
     }
 
