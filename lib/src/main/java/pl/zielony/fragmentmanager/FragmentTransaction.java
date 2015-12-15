@@ -16,16 +16,18 @@ public class FragmentTransaction {
 
     public Class<? extends Fragment> fragmentClass;
     public Fragment fragment;
+    public FragmentTransaction parent;
     public int id;
     public String tag;
     public Mode mode;
 
-    public FragmentTransaction(Fragment fragment, int id, String tag, Mode mode) {
+    public FragmentTransaction(FragmentTransaction parent,Fragment fragment, int id, String tag, Mode mode) {
         this.fragment = fragment;
         this.fragmentClass = fragment.getClass();
         this.id = id;
         this.tag = tag;
         this.mode = mode;
+        this.parent = parent;
     }
 
     public void onSaveState(Bundle state) {

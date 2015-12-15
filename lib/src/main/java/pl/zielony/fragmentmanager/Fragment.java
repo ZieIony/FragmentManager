@@ -34,7 +34,7 @@ public abstract class Fragment {
 
     protected abstract View onCreateView();
 
-    public void resume(){
+    public void resume() {
         fragmentManager.roots.add(view);
         onResume();
         running = true;
@@ -43,7 +43,7 @@ public abstract class Fragment {
     protected void onResume() {
     }
 
-    public void pause(){
+    public void pause() {
         running = false;
         onPause();
         fragmentManager.roots.remove(view);
@@ -52,7 +52,7 @@ public abstract class Fragment {
     protected void onPause() {
     }
 
-    public boolean isRunning(){
+    public boolean isRunning() {
         return running;
     }
 
@@ -60,7 +60,7 @@ public abstract class Fragment {
         return view;
     }
 
-    public Handler getHandler(){
+    public Handler getHandler() {
         return handler;
     }
 
@@ -85,16 +85,16 @@ public abstract class Fragment {
         ArrayList<ViewGroup> groups = new ArrayList<>();
         groups.add((ViewGroup) view);
 
-        while(!groups.isEmpty()) {
+        while (!groups.isEmpty()) {
             ViewGroup group = groups.remove(0);
 
-            for(int i = 0; i < group.getChildCount(); ++i) {
+            for (int i = 0; i < group.getChildCount(); ++i) {
                 View child = group.getChildAt(i);
-                if(child.getId() == id) {
+                if (child.getId() == id) {
                     result.add(child);
                 }
 
-                if(child instanceof ViewGroup) {
+                if (child instanceof ViewGroup) {
                     groups.add((ViewGroup) child);
                 }
             }
@@ -108,17 +108,17 @@ public abstract class Fragment {
         ArrayList<ViewGroup> groups = new ArrayList<>();
         groups.add((ViewGroup) view);
 
-        while(!groups.isEmpty()) {
+        while (!groups.isEmpty()) {
             ViewGroup group = groups.remove(0);
 
-            for(int i = 0; i < group.getChildCount(); ++i) {
+            for (int i = 0; i < group.getChildCount(); ++i) {
                 View child = group.getChildAt(i);
-                if(tag.equals(child.getTag())) {
+                if (tag.equals(child.getTag())) {
                     result.add(child);
                 }
 
-                if(child instanceof ViewGroup) {
-                    groups.add((ViewGroup)child);
+                if (child instanceof ViewGroup) {
+                    groups.add((ViewGroup) child);
                 }
             }
         }
@@ -180,15 +180,69 @@ public abstract class Fragment {
 
     }
 
-    public void onSaveState(Bundle bundle){}
+    public void onSaveState(Bundle bundle) {
+    }
 
-    public void onRestoreState(Bundle bundle){}
+    public void onRestoreState(Bundle bundle) {
+    }
 
-    public String getString(int resId){
+    public String getString(int resId) {
         return activity.getString(resId);
     }
 
-    public String getString(int resId, Object... args){
-        return activity.getString(resId,args);
+    public String getString(int resId, Object... args) {
+        return activity.getString(resId, args);
+    }
+
+    public <T extends Fragment> T push(T fragment, final int id) {
+        return fragmentManager.push(this, fragment, id);
+    }
+
+    public <T extends Fragment> T push(T fragment, String tag) {
+        return fragmentManager.push(this, fragment, tag);
+    }
+
+    public <T extends Fragment> T push(Class<T> fragmentClass, final int id) {
+        return fragmentManager.push(this, fragmentClass, id);
+    }
+
+    public <T extends Fragment> T push(Class<T> fragmentClass, String tag) {
+        return fragmentManager.push(this, fragmentClass, tag);
+    }
+
+    public <T extends Fragment> T add(T fragment, int id) {
+        return fragmentManager.add(this,fragment, id);
+    }
+
+    public <T extends Fragment> T add(T fragment, String tag) {
+        return fragmentManager.add(this,fragment, tag);
+    }
+
+    public <T extends Fragment> T add(Class<T> fragmentClass, int id) {
+        T fragment = instantiate(fragmentClass);
+        return add(fragment, id, null);
+    }
+
+    public <T extends Fragment> T add(Class<T> fragmentClass, String tag) {
+        T fragment = instantiate(fragmentClass);
+        return add(fragment, 0, tag);
+    }
+
+    public <T extends Fragment> T join(T fragment, int id) {
+        return join(fragment, id, null);
+    }
+
+    public <T extends Fragment> T join(T fragment, String tag) {
+        return join(fragment, 0, tag);
+    }
+
+    public <T extends Fragment> T join(Class<T> fragmentClass, int id) {
+        T fragment = instantiate(fragmentClass);
+        return join(fragment, id, null);
+    }
+
+    public <T extends Fragment> T join(Class<T> fragmentClass, String tag) {
+        T fragment = instantiate(fragmentClass);
+        return join(fragment, 0, tag);
     }
 }
