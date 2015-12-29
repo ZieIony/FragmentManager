@@ -16,11 +16,15 @@ import java.util.List;
 /**
  * Created by Marcin on 2015-03-20.
  */
-public class FragmentManager {
+public class FragmentManager implements FragmentManagerInterface {
     private final Activity activity;
     List<View> roots;
     List<FragmentTransaction> backstack;
     boolean restoring = false;
+
+    public enum Options {
+        DONT_REMOVE, ALLOW_DUPLICATES
+    }
 
     public FragmentManager(Activity activity) {
         this.activity = activity;
@@ -29,101 +33,77 @@ public class FragmentManager {
         backstack = new ArrayList<>();
     }
 
+    @Override
     public <T extends Fragment> T push(T fragment, final int id) {
-        return push(null, fragment, id, null);
+        return push(fragment, id, null);
     }
 
+    @Override
     public <T extends Fragment> T push(T fragment, String tag) {
-        return push(null, fragment, 0, tag);
+        return push(fragment, 0, tag);
     }
 
+    @Override
     public <T extends Fragment> T push(Class<T> fragmentClass, final int id) {
         T fragment = instantiate(fragmentClass);
-        return push(null, fragment, id, null);
+        return push(fragment, id, null);
     }
 
+    @Override
     public <T extends Fragment> T push(Class<T> fragmentClass, String tag) {
         T fragment = instantiate(fragmentClass);
-        return push(null, fragment, 0, tag);
+        return push(fragment, 0, tag);
     }
 
-    public <T extends Fragment> T push(Fragment parent, T fragment, final int id) {
-        return push(parent, fragment, id, null);
-    }
-
-    public <T extends Fragment> T push(Fragment parent, T fragment, String tag) {
-        return push(parent, fragment, 0, tag);
-    }
-
-    public <T extends Fragment> T push(Fragment parent, Class<T> fragmentClass, final int id) {
-        T fragment = instantiate(fragmentClass);
-        return push(parent, fragment, id, null);
-    }
-
-    public <T extends Fragment> T push(Fragment parent, Class<T> fragmentClass, String tag) {
-        T fragment = instantiate(fragmentClass);
-        return push(parent, fragment, 0, tag);
-    }
-
+    @Override
     public <T extends Fragment> T add(T fragment, int id) {
-        return add(null, fragment, id, null);
+        return add(fragment, id, null);
     }
 
+    @Override
     public <T extends Fragment> T add(T fragment, String tag) {
-        return add(null, fragment, 0, tag);
+        return add(fragment, 0, tag);
     }
 
+    @Override
     public <T extends Fragment> T add(Class<T> fragmentClass, int id) {
         T fragment = instantiate(fragmentClass);
-        return add(null, fragment, id, null);
+        return add(fragment, id, null);
     }
 
+    @Override
     public <T extends Fragment> T add(Class<T> fragmentClass, String tag) {
         T fragment = instantiate(fragmentClass);
-        return add(null, fragment, 0, tag);
+        return add(fragment, 0, tag);
     }
 
-    public <T extends Fragment> T add(Fragment parent, T fragment, int id) {
-        return add(parent, fragment, id, null);
-    }
-
-    public <T extends Fragment> T add(Fragment parent, T fragment, String tag) {
-        return add(null, fragment, 0, tag);
-    }
-
-    public <T extends Fragment> T add(Fragment parent, Class<T> fragmentClass, int id) {
-        T fragment = instantiate(fragmentClass);
-        return add(parent, fragment, id, null);
-    }
-
-    public <T extends Fragment> T add(Fragment parent, Class<T> fragmentClass, String tag) {
-        T fragment = instantiate(fragmentClass);
-        return add(parent, fragment, 0, tag);
-    }
-
+    @Override
     public <T extends Fragment> T join(T fragment, int id) {
         return join(fragment, id, null);
     }
 
+    @Override
     public <T extends Fragment> T join(T fragment, String tag) {
         return join(fragment, 0, tag);
     }
 
+    @Override
     public <T extends Fragment> T join(Class<T> fragmentClass, int id) {
         T fragment = instantiate(fragmentClass);
         return join(fragment, id, null);
     }
 
+    @Override
     public <T extends Fragment> T join(Class<T> fragmentClass, String tag) {
         T fragment = instantiate(fragmentClass);
         return join(fragment, 0, tag);
     }
 
-    private <T extends Fragment> T push(Fragment parent, T fragment, final int id, String tag) {
+    private <T extends Fragment> T push(T fragment, final int id, String tag) {
         FragmentTransaction prevTransaction = backstack.get(backstack.size() - 1);
         prevTransaction.fragment.pause();
 
-        final FragmentTransaction transaction = new FragmentTransaction(getParentTransaction(parent), fragment, id, tag, FragmentTransaction.Mode.Push);
+        final FragmentTransaction transaction = new FragmentTransaction(fragment, id, tag, FragmentTransaction.Mode.Push);
         backstack.add(transaction);
 
         getContainer(transaction).addView(fragment.getView());
@@ -137,7 +117,7 @@ public class FragmentManager {
         return fragment;
     }
 
-    private <T extends Fragment> T add(Fragment parent, T fragment, final int id, String tag) {
+    private <T extends Fragment> T add(T fragment, final int id, String tag) {
         if (hasBack()) {
             for (int i = backstack.size() - 1; i >= 0; i--) {
                 final FragmentTransaction transaction = backstack.get(i);
@@ -154,7 +134,7 @@ public class FragmentManager {
                     break;
             }
         }
-        FragmentTransaction transaction = new FragmentTransaction(getParentTransaction(parent), fragment, id, tag, FragmentTransaction.Mode.Add);
+        FragmentTransaction transaction = new FragmentTransaction(fragment, id, tag, FragmentTransaction.Mode.Add);
         backstack.add(transaction);
         getContainer(transaction).addView(fragment.getView());
         fragment.animateInAdd(null);
@@ -163,7 +143,7 @@ public class FragmentManager {
     }
 
     private <T extends Fragment> T join(T fragment, final int id, String tag) {
-        FragmentTransaction transaction = new FragmentTransaction(null, fragment, id, tag, FragmentTransaction.Mode.Join);
+        FragmentTransaction transaction = new FragmentTransaction(fragment, id, tag, FragmentTransaction.Mode.Join);
         backstack.add(transaction);
         getContainer(transaction).addView(fragment.getView());
         fragment.animateInAdd(null);
@@ -171,12 +151,15 @@ public class FragmentManager {
         return (T) fragment;
     }
 
-    public boolean up() {
-        if (!hasUp())
-            return false;
+    public void up() {
         FragmentTransaction transaction;
         while (true) {
-            transaction = backstack.remove(backstack.size() - 1);
+            transaction = backstack.get(backstack.size() - 1);
+            if (transaction.fragment.hasUp()) {
+                transaction.fragment.up();
+                return;
+            }
+            backstack.remove(backstack.size() - 1);
             transaction.fragment.pause();
             final FragmentTransaction finalTransaction = transaction;
             transaction.fragment.animateOutBack(new AnimatorListenerAdapter() {
@@ -191,19 +174,23 @@ public class FragmentManager {
         }
 
         FragmentTransaction prevTransaction = backstack.get(backstack.size() - 1);
-        getContainer(transaction).removeAllViews();
-        prevTransaction.fragment = instantiate(prevTransaction.fragmentClass);
-        getContainer(prevTransaction).addView(prevTransaction.fragment.getView());
-        prevTransaction.fragment.resume();
-        return true;
+        if (prevTransaction.fragment == null) {
+            prevTransaction.fragment = instantiate(prevTransaction.fragmentClass);
+            getContainer(prevTransaction).addView(prevTransaction.fragment.getView());
+            prevTransaction.fragment.animateInBack();
+            prevTransaction.fragment.resume();
+        }
     }
 
-    public boolean back() {
-        if (!hasBack())
-            return false;
+    public void back() {
         FragmentTransaction transaction;
         while (true) {
-            transaction = backstack.remove(backstack.size() - 1);
+            transaction = backstack.get(backstack.size() - 1);
+            if (transaction.fragment.hasBack()) {
+                transaction.fragment.back();
+                return;
+            }
+            backstack.remove(backstack.size() - 1);
             transaction.fragment.pause();
             final FragmentTransaction finalTransaction = transaction;
             transaction.fragment.animateOutBack(new AnimatorListenerAdapter() {
@@ -218,13 +205,12 @@ public class FragmentManager {
         }
 
         FragmentTransaction prevTransaction = backstack.get(backstack.size() - 1);
-        if (prevTransaction.id == transaction.id) {
+        if (prevTransaction.fragment == null) {
             prevTransaction.fragment = instantiate(prevTransaction.fragmentClass);
             getContainer(prevTransaction).addView(prevTransaction.fragment.getView());
             prevTransaction.fragment.animateInBack();
             prevTransaction.fragment.resume();
         }
-        return true;
     }
 
     public boolean hasBack() {
@@ -252,8 +238,21 @@ public class FragmentManager {
     }
 
     public void clear() {
-        backstack = new ArrayList<>();
-        throw new RuntimeException("Not implemented");
+        while (!backstack.isEmpty()) {
+            FragmentTransaction transaction = backstack.get(backstack.size() - 1);
+            backstack.remove(backstack.size() - 1);
+            if (transaction.fragment != null && transaction.fragment.isRunning()) {
+                transaction.fragment.pause();
+                final FragmentTransaction finalTransaction = transaction;
+                transaction.fragment.animateOutBack(new AnimatorListenerAdapter() {
+                    @Override
+                    public void onAnimationEnd(Animator animation) {
+                        getContainer(finalTransaction).removeView(finalTransaction.fragment.getView());
+                        finalTransaction.fragment = null;
+                    }
+                });
+            }
+        }
     }
 
     public void save(Bundle bundle) {
@@ -343,16 +342,4 @@ public class FragmentManager {
         return activity;
     }
 
-    private FragmentTransaction getParentTransaction(Fragment parent) {
-        if (parent == null)
-            return null;
-        FragmentTransaction parentTransaction = null;
-        for (int i = backstack.size() - 1; i >= 0; i--) {
-            if (backstack.get(i).fragment == parent) {
-                parentTransaction = backstack.get(i);
-                break;
-            }
-        }
-        return parentTransaction;
-    }
 }

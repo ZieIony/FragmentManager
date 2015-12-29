@@ -18,16 +18,20 @@ import java.util.List;
 /**
  * Created by Marcin on 2015-03-20.
  */
-public abstract class Fragment {
+public abstract class Fragment implements FragmentManagerInterface {
+    private static final String FRAGMENT_MANAGER = "fragmentManager";
+
     private final Activity activity;
     View view;
     Handler handler;
     private FragmentManager fragmentManager;
+    private FragmentManager childFragmentManager;
     private boolean running;
 
     public Fragment(FragmentManager fragmentManager) {
         this.activity = fragmentManager.getActivity();
         this.fragmentManager = fragmentManager;
+        childFragmentManager = new FragmentManager(activity);
         handler = new Handler();
         view = onCreateView();
     }
@@ -181,9 +185,13 @@ public abstract class Fragment {
     }
 
     public void onSaveState(Bundle bundle) {
+        Bundle fragmentManagerBundle = new Bundle();
+        childFragmentManager.save(fragmentManagerBundle);
+        bundle.putBundle(FRAGMENT_MANAGER, fragmentManagerBundle);
     }
 
     public void onRestoreState(Bundle bundle) {
+        childFragmentManager.restore(bundle.getBundle(FRAGMENT_MANAGER));
     }
 
     public String getString(int resId) {
@@ -195,54 +203,70 @@ public abstract class Fragment {
     }
 
     public <T extends Fragment> T push(T fragment, final int id) {
-        return fragmentManager.push(this, fragment, id);
+        return childFragmentManager.push(fragment, id);
     }
 
     public <T extends Fragment> T push(T fragment, String tag) {
-        return fragmentManager.push(this, fragment, tag);
+        return childFragmentManager.push(fragment, tag);
     }
 
     public <T extends Fragment> T push(Class<T> fragmentClass, final int id) {
-        return fragmentManager.push(this, fragmentClass, id);
+        return childFragmentManager.push(fragmentClass, id);
     }
 
     public <T extends Fragment> T push(Class<T> fragmentClass, String tag) {
-        return fragmentManager.push(this, fragmentClass, tag);
+        return childFragmentManager.push(fragmentClass, tag);
     }
 
     public <T extends Fragment> T add(T fragment, int id) {
-        return fragmentManager.add(this,fragment, id);
+        return childFragmentManager.add(fragment, id);
     }
 
     public <T extends Fragment> T add(T fragment, String tag) {
-        return fragmentManager.add(this,fragment, tag);
+        return childFragmentManager.add(fragment, tag);
     }
 
     public <T extends Fragment> T add(Class<T> fragmentClass, int id) {
-        T fragment = instantiate(fragmentClass);
-        return add(fragment, id, null);
+        return childFragmentManager.add(fragmentClass, id);
     }
 
     public <T extends Fragment> T add(Class<T> fragmentClass, String tag) {
-        T fragment = instantiate(fragmentClass);
-        return add(fragment, 0, tag);
+        return childFragmentManager.add(fragmentClass, tag);
     }
 
     public <T extends Fragment> T join(T fragment, int id) {
-        return join(fragment, id, null);
+        return childFragmentManager.join(fragment, id);
     }
 
     public <T extends Fragment> T join(T fragment, String tag) {
-        return join(fragment, 0, tag);
+        return childFragmentManager.join(fragment, tag);
     }
 
     public <T extends Fragment> T join(Class<T> fragmentClass, int id) {
-        T fragment = instantiate(fragmentClass);
-        return join(fragment, id, null);
+        return childFragmentManager.join(fragmentClass, id);
     }
 
     public <T extends Fragment> T join(Class<T> fragmentClass, String tag) {
-        T fragment = instantiate(fragmentClass);
-        return join(fragment, 0, tag);
+        return childFragmentManager.join(fragmentClass, tag);
+    }
+
+    @Override
+    public void back() {
+        childFragmentManager.back();
+    }
+
+    @Override
+    public void up() {
+        childFragmentManager.up();
+    }
+
+    @Override
+    public boolean hasBack() {
+        return childFragmentManager.hasBack();
+    }
+
+    @Override
+    public boolean hasUp() {
+        return childFragmentManager.hasUp();
     }
 }
