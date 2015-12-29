@@ -27,13 +27,14 @@ public abstract class Fragment implements FragmentManagerInterface {
     private FragmentManager fragmentManager;
     private FragmentManager childFragmentManager;
     private boolean running;
+    Fragment parent;
 
     public Fragment(FragmentManager fragmentManager) {
         this.activity = fragmentManager.getActivity();
         this.fragmentManager = fragmentManager;
-        childFragmentManager = new FragmentManager(activity);
         handler = new Handler();
         view = onCreateView();
+        childFragmentManager = new FragmentManager(fragmentManager, view);
     }
 
     protected abstract View onCreateView();
@@ -203,47 +204,69 @@ public abstract class Fragment implements FragmentManagerInterface {
     }
 
     public <T extends Fragment> T push(T fragment, final int id) {
-        return childFragmentManager.push(fragment, id);
+        T f = childFragmentManager.push(fragment, id);
+        f.setParent(this);
+        return f;
     }
 
     public <T extends Fragment> T push(T fragment, String tag) {
-        return childFragmentManager.push(fragment, tag);
+        T f = childFragmentManager.push(fragment, tag);
+        f.setParent(this);
+        return f;
     }
 
     public <T extends Fragment> T push(Class<T> fragmentClass, final int id) {
-        return childFragmentManager.push(fragmentClass, id);
+        T f = childFragmentManager.push(fragmentClass, id);
+        f.setParent(this);
+        return f;
     }
 
     public <T extends Fragment> T push(Class<T> fragmentClass, String tag) {
-        return childFragmentManager.push(fragmentClass, tag);
+        T f = childFragmentManager.push(fragmentClass, tag);
+        f.setParent(this);
+        return f;
     }
 
     public <T extends Fragment> T add(T fragment, int id) {
-        return childFragmentManager.add(fragment, id);
+        T f = childFragmentManager.add(fragment, id);
+        f.setParent(this);
+        return f;
     }
 
     public <T extends Fragment> T add(T fragment, String tag) {
-        return childFragmentManager.add(fragment, tag);
+        T f = childFragmentManager.add(fragment, tag);
+        f.setParent(this);
+        return f;
     }
 
     public <T extends Fragment> T add(Class<T> fragmentClass, int id) {
-        return childFragmentManager.add(fragmentClass, id);
+        T f = childFragmentManager.add(fragmentClass, id);
+        f.setParent(this);
+        return f;
     }
 
     public <T extends Fragment> T add(Class<T> fragmentClass, String tag) {
-        return childFragmentManager.add(fragmentClass, tag);
+        T f = childFragmentManager.add(fragmentClass, tag);
+        f.setParent(this);
+        return f;
     }
 
     public <T extends Fragment> T join(T fragment, int id) {
-        return childFragmentManager.join(fragment, id);
+        T f = childFragmentManager.join(fragment, id);
+        f.setParent(this);
+        return f;
     }
 
     public <T extends Fragment> T join(T fragment, String tag) {
-        return childFragmentManager.join(fragment, tag);
+        T f = childFragmentManager.join(fragment, tag);
+        f.setParent(this);
+        return f;
     }
 
     public <T extends Fragment> T join(Class<T> fragmentClass, int id) {
-        return childFragmentManager.join(fragmentClass, id);
+        T f = childFragmentManager.join(fragmentClass, id);
+        f.setParent(this);
+        return f;
     }
 
     public <T extends Fragment> T join(Class<T> fragmentClass, String tag) {
@@ -268,5 +291,13 @@ public abstract class Fragment implements FragmentManagerInterface {
     @Override
     public boolean hasUp() {
         return childFragmentManager.hasUp();
+    }
+
+    public Fragment getParent() {
+        return parent;
+    }
+
+    public void setParent(Fragment parent) {
+        this.parent = parent;
     }
 }

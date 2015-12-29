@@ -14,8 +14,8 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        manager = new FragmentManager(this);
-        manager.add(new MainFragment(manager),"root");
+        manager = new FragmentManager(this,findViewById(R.id.root));
+        manager.add(new MainFragment(manager),R.id.root);
     }
 
     @Override

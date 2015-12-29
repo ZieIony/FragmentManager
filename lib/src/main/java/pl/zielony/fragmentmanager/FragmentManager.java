@@ -9,7 +9,6 @@ import android.view.ViewGroup;
 import com.nineoldandroids.animation.Animator;
 import com.nineoldandroids.animation.AnimatorListenerAdapter;
 
-import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -21,16 +20,25 @@ public class FragmentManager implements FragmentManagerInterface {
     List<View> roots;
     List<FragmentTransaction> backstack;
     boolean restoring = false;
+    FragmentManager parent;
 
     public enum Options {
         DONT_REMOVE, ALLOW_DUPLICATES
     }
 
-    public FragmentManager(Activity activity) {
+    public FragmentManager(Activity activity,View root) {
         this.activity = activity;
         roots = new ArrayList<>();
-        roots.add(activity.getWindow().getDecorView().getRootView());
+        roots.add(root);
         backstack = new ArrayList<>();
+    }
+
+    public FragmentManager(FragmentManager parent, View root) {
+        this.activity = parent.getActivity();
+        roots = new ArrayList<>();
+        roots.add(root);
+        backstack = new ArrayList<>();
+        this.parent = parent;
     }
 
     @Override
@@ -100,27 +108,9 @@ public class FragmentManager implements FragmentManagerInterface {
     }
 
     private <T extends Fragment> T push(T fragment, final int id, String tag) {
-        FragmentTransaction prevTransaction = backstack.get(backstack.size() - 1);
-        prevTransaction.fragment.pause();
-
-        final FragmentTransaction transaction = new FragmentTransaction(fragment, id, tag, FragmentTransaction.Mode.Push);
-        backstack.add(transaction);
-
-        getContainer(transaction).addView(fragment.getView());
-        fragment.animateInAdd(new AnimatorListenerAdapter() {
-            @Override
-            public void onAnimationEnd(Animator animation) {
-                getContainer(transaction).removeAllViews();
-            }
-        });
-        fragment.resume();
-        return fragment;
-    }
-
-    private <T extends Fragment> T add(T fragment, final int id, String tag) {
-        if (hasBack()) {
-            for (int i = backstack.size() - 1; i >= 0; i--) {
-                final FragmentTransaction transaction = backstack.get(i);
+        for (int i = backstack.size() - 1; i >= 0; i--) {
+            final FragmentTransaction transaction = backstack.get(i);
+            if (transaction.id == id || tag != null && tag.equals(transaction.tag)) {
                 final Fragment prevFragment = transaction.fragment;
                 prevFragment.pause();
                 prevFragment.animateOutAdd(new AnimatorListenerAdapter() {
@@ -130,8 +120,31 @@ public class FragmentManager implements FragmentManagerInterface {
                         transaction.fragment = null;
                     }
                 });
-                if (transaction.id == id || tag != null && tag.equals(transaction.tag))
-                    break;
+                break;
+            }
+        }
+        FragmentTransaction transaction = new FragmentTransaction(fragment, id, tag, FragmentTransaction.Mode.Push);
+        backstack.add(transaction);
+        getContainer(transaction).addView(fragment.getView());
+        fragment.animateInAdd(null);
+        fragment.resume();
+        return (T) fragment;
+    }
+
+    private <T extends Fragment> T add(T fragment, final int id, String tag) {
+        for (int i = backstack.size() - 1; i >= 0; i--) {
+            final FragmentTransaction transaction = backstack.get(i);
+            if (transaction.id == id || tag != null && tag.equals(transaction.tag)) {
+                final Fragment prevFragment = transaction.fragment;
+                prevFragment.pause();
+                prevFragment.animateOutAdd(new AnimatorListenerAdapter() {
+                    @Override
+                    public void onAnimationEnd(Animator animation) {
+                        getContainer(transaction).removeView(prevFragment.getView());
+                        transaction.fragment = null;
+                    }
+                });
+                break;
             }
         }
         FragmentTransaction transaction = new FragmentTransaction(fragment, id, tag, FragmentTransaction.Mode.Add);
@@ -326,14 +339,8 @@ public class FragmentManager implements FragmentManagerInterface {
         Fragment fragment = null;
         try {
             fragment = fragmentClass.getConstructor(FragmentManager.class).newInstance(this);
-        } catch (InstantiationException e) {
-            e.printStackTrace();
-        } catch (IllegalAccessException e) {
-            e.printStackTrace();
-        } catch (NoSuchMethodException e) {
-            e.printStackTrace();
-        } catch (InvocationTargetException e) {
-            e.printStackTrace();
+        } catch (Exception e) {
+            throw new RuntimeException(e);
         }
         return (T) fragment;
     }
@@ -342,4 +349,7 @@ public class FragmentManager implements FragmentManagerInterface {
         return activity;
     }
 
+    public FragmentManager getParent() {
+        return parent;
+    }
 }
