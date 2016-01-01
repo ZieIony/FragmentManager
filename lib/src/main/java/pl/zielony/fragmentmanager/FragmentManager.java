@@ -19,18 +19,16 @@ public class FragmentManager implements FragmentManagerInterface {
     private final Activity activity;
     List<View> roots;
     List<FragmentTransaction> backstack;
+    List<FragmentState> activeStates;
     boolean restoring = false;
     FragmentManager parent;
 
-    public enum Options {
-        DONT_REMOVE, ALLOW_DUPLICATES
-    }
-
-    public FragmentManager(Activity activity,View root) {
+    public FragmentManager(Activity activity, View root) {
         this.activity = activity;
         roots = new ArrayList<>();
         roots.add(root);
         backstack = new ArrayList<>();
+        activeStates = new ArrayList<>();
     }
 
     public FragmentManager(FragmentManager parent, View root) {
@@ -38,6 +36,7 @@ public class FragmentManager implements FragmentManagerInterface {
         roots = new ArrayList<>();
         roots.add(root);
         backstack = new ArrayList<>();
+        activeStates = new ArrayList<>();
         this.parent = parent;
     }
 
@@ -108,128 +107,133 @@ public class FragmentManager implements FragmentManagerInterface {
     }
 
     private <T extends Fragment> T push(T fragment, final int id, String tag) {
-        for (int i = backstack.size() - 1; i >= 0; i--) {
-            final FragmentTransaction transaction = backstack.get(i);
-            if (transaction.id == id || tag != null && tag.equals(transaction.tag)) {
-                final Fragment prevFragment = transaction.fragment;
-                prevFragment.pause();
-                prevFragment.animateOutAdd(new AnimatorListenerAdapter() {
-                    @Override
-                    public void onAnimationEnd(Animator animation) {
-                        getContainer(transaction).removeView(prevFragment.getView());
-                        transaction.fragment = null;
-                    }
-                });
-                break;
-            }
+        FragmentTransactionSet transactionSet = new FragmentTransactionSet();
+
+        for (int i = activeStates.size() - 1; i >= 0; i--) {
+            final FragmentState state = activeStates.get(i);
+            if (state.id == id || tag != null && tag.equals(state.tag))
+                transactionSet.addTransaction(new RemoveFragmentTransaction(state, this));
         }
-        FragmentTransaction transaction = new FragmentTransaction(fragment, id, tag, FragmentTransaction.Mode.Push);
-        backstack.add(transaction);
-        getContainer(transaction).addView(fragment.getView());
-        fragment.animateInAdd(null);
-        fragment.resume();
+
+        transactionSet.addTransaction(new AddFragmentTransaction(new FragmentState(fragment, id, tag, FragmentState.Mode.Push), this));
+        backstack.add(transactionSet);
+        transactionSet.execute();
+
         return (T) fragment;
     }
 
     private <T extends Fragment> T add(T fragment, final int id, String tag) {
-        for (int i = backstack.size() - 1; i >= 0; i--) {
-            final FragmentTransaction transaction = backstack.get(i);
-            if (transaction.id == id || tag != null && tag.equals(transaction.tag)) {
-                final Fragment prevFragment = transaction.fragment;
-                prevFragment.pause();
-                prevFragment.animateOutAdd(new AnimatorListenerAdapter() {
-                    @Override
-                    public void onAnimationEnd(Animator animation) {
-                        getContainer(transaction).removeView(prevFragment.getView());
-                        transaction.fragment = null;
-                    }
-                });
-                break;
-            }
+        FragmentTransactionSet transactionSet = new FragmentTransactionSet();
+
+        for (int i = activeStates.size() - 1; i >= 0; i--) {
+            final FragmentState state = activeStates.get(i);
+            if (state.id == id || tag != null && tag.equals(state.tag))
+                transactionSet.addTransaction(new RemoveFragmentTransaction(state, this));
         }
-        FragmentTransaction transaction = new FragmentTransaction(fragment, id, tag, FragmentTransaction.Mode.Add);
-        backstack.add(transaction);
-        getContainer(transaction).addView(fragment.getView());
-        fragment.animateInAdd(null);
-        fragment.resume();
+
+        transactionSet.addTransaction(new AddFragmentTransaction(new FragmentState(fragment, id, tag, FragmentState.Mode.Add), this));
+        backstack.add(transactionSet);
+        transactionSet.execute();
+
         return (T) fragment;
     }
 
     private <T extends Fragment> T join(T fragment, final int id, String tag) {
-        FragmentTransaction transaction = new FragmentTransaction(fragment, id, tag, FragmentTransaction.Mode.Join);
-        backstack.add(transaction);
-        getContainer(transaction).addView(fragment.getView());
-        fragment.animateInAdd(null);
-        fragment.resume();
+        inAddState(new FragmentState(fragment, id, tag, FragmentState.Mode.Join));
         return (T) fragment;
     }
 
-    public void up() {
-        FragmentTransaction transaction;
-        while (true) {
-            transaction = backstack.get(backstack.size() - 1);
-            if (transaction.fragment.hasUp()) {
-                transaction.fragment.up();
-                return;
-            }
-            backstack.remove(backstack.size() - 1);
-            transaction.fragment.pause();
-            final FragmentTransaction finalTransaction = transaction;
-            transaction.fragment.animateOutBack(new AnimatorListenerAdapter() {
-                @Override
-                public void onAnimationEnd(Animator animation) {
-                    getContainer(finalTransaction).removeView(finalTransaction.fragment.getView());
-                    finalTransaction.fragment = null;
-                }
-            });
-            if (transaction.mode == FragmentTransaction.Mode.Push)
+    public boolean up() {
+        for (int i = activeStates.size() - 1; i >= 0; i--) {
+            if (activeStates.get(i).fragment.hasUp())
+                if (activeStates.get(i).fragment.up())
+                    return true;
+        }
+        while (backstack.size() != 0) {
+            backstack.remove(backstack.size() - 1).undo();
+            if (activeStates.isEmpty())
                 break;
+            FragmentState state = activeStates.get(activeStates.size() - 1);
+            if (state.mode == FragmentState.Mode.Push)
+                return true;
         }
-
-        FragmentTransaction prevTransaction = backstack.get(backstack.size() - 1);
-        if (prevTransaction.fragment == null) {
-            prevTransaction.fragment = instantiate(prevTransaction.fragmentClass);
-            getContainer(prevTransaction).addView(prevTransaction.fragment.getView());
-            prevTransaction.fragment.animateInBack();
-            prevTransaction.fragment.resume();
-        }
+        return false;
     }
 
-    public void back() {
-        FragmentTransaction transaction;
-        while (true) {
-            transaction = backstack.get(backstack.size() - 1);
-            if (transaction.fragment.hasBack()) {
-                transaction.fragment.back();
-                return;
-            }
-            backstack.remove(backstack.size() - 1);
-            transaction.fragment.pause();
-            final FragmentTransaction finalTransaction = transaction;
-            transaction.fragment.animateOutBack(new AnimatorListenerAdapter() {
-                @Override
-                public void onAnimationEnd(Animator animation) {
-                    getContainer(finalTransaction).removeView(finalTransaction.fragment.getView());
-                    finalTransaction.fragment = null;
-                }
-            });
-            if (transaction.mode != FragmentTransaction.Mode.Join)
+    /**
+     * Pops one backstack step
+     *
+     * @return if back could pop one complete step
+     */
+    public boolean back() {
+        for (int i = activeStates.size() - 1; i >= 0; i--) {
+            if (activeStates.get(i).fragment.hasBack())
+                if (activeStates.get(i).fragment.back())
+                    return true;
+        }
+        while (backstack.size() != 0) {
+            backstack.remove(backstack.size() - 1).undo();
+            if (activeStates.isEmpty())
                 break;
+            FragmentState state = activeStates.get(activeStates.size() - 1);
+            if (state.mode != FragmentState.Mode.Join)
+                return true;
         }
+        return false;
+    }
 
-        FragmentTransaction prevTransaction = backstack.get(backstack.size() - 1);
-        if (prevTransaction.fragment == null) {
-            prevTransaction.fragment = instantiate(prevTransaction.fragmentClass);
-            getContainer(prevTransaction).addView(prevTransaction.fragment.getView());
-            prevTransaction.fragment.animateInBack();
-            prevTransaction.fragment.resume();
-        }
+    void inAddState(FragmentState state) {
+        Fragment fragment = state.fragment;
+        activeStates.add(state);
+        getContainer(state).addView(fragment.getView());
+        fragment.resume();
+        fragment.animateInAdd();
+    }
+
+    void inBackState(FragmentState state) {
+        if (state.fragment == null)
+            state.fragment = instantiate(state.fragmentClass);
+        Fragment fragment = state.fragment;
+        activeStates.add(state);
+        getContainer(state).addView(fragment.getView());
+        restoring=true;
+        fragment.onRestoreState(state.state);
+        fragment.resume();
+        fragment.animateInBack();
+        restoring=false;
+    }
+
+    void outAddState(final FragmentState state) {
+        final Fragment fragment = state.fragment;
+        activeStates.remove(state);
+        fragment.animateOutAdd(new AnimatorListenerAdapter() {
+            @Override
+            public void onAnimationEnd(Animator animation) {
+                fragment.pause();
+                fragment.onSaveState(state.state);
+                getContainer(state).removeView(fragment.getView());
+                state.fragment = null;
+            }
+        });
+    }
+
+    void outBackState(final FragmentState state) {
+        final Fragment fragment = state.fragment;
+        activeStates.remove(state);
+        state.fragment.animateOutBack(new AnimatorListenerAdapter() {
+            @Override
+            public void onAnimationEnd(Animator animation) {
+                fragment.pause();
+                getContainer(state).removeView(fragment.getView());
+                state.fragment = null;
+            }
+        });
     }
 
     public boolean hasBack() {
-        for (int i = backstack.size() - 1; i >= 0; i--) {
-            FragmentTransaction transaction = backstack.get(i);
-            if (transaction.mode == FragmentTransaction.Mode.Join)
+        for (int i = activeStates.size() - 1; i >= 0; i--) {
+            FragmentState state = activeStates.get(i);
+            if (state.mode == FragmentState.Mode.Join)
                 continue;
             if (i > 0)
                 return true;
@@ -239,9 +243,9 @@ public class FragmentManager implements FragmentManagerInterface {
     }
 
     public boolean hasUp() {
-        for (int i = backstack.size() - 1; i >= 0; i--) {
-            FragmentTransaction transaction = backstack.get(i);
-            if (transaction.mode != FragmentTransaction.Mode.Push)
+        for (int i = activeStates.size() - 1; i >= 0; i--) {
+            FragmentState transaction = activeStates.get(i);
+            if (transaction.mode != FragmentState.Mode.Push)
                 continue;
             if (i > 0)
                 return true;
@@ -252,31 +256,19 @@ public class FragmentManager implements FragmentManagerInterface {
 
     public void clear() {
         while (!backstack.isEmpty()) {
-            FragmentTransaction transaction = backstack.get(backstack.size() - 1);
-            backstack.remove(backstack.size() - 1);
-            if (transaction.fragment != null && transaction.fragment.isRunning()) {
-                transaction.fragment.pause();
-                final FragmentTransaction finalTransaction = transaction;
-                transaction.fragment.animateOutBack(new AnimatorListenerAdapter() {
-                    @Override
-                    public void onAnimationEnd(Animator animation) {
-                        getContainer(finalTransaction).removeView(finalTransaction.fragment.getView());
-                        finalTransaction.fragment = null;
-                    }
-                });
-            }
+            FragmentTransaction transaction = backstack.remove(backstack.size() - 1);
+            transaction.undo();
         }
     }
 
     public void save(Bundle bundle) {
-        ArrayList<Bundle> managerBundle = new ArrayList<>();
+      /*  ArrayList<Bundle> managerBundle = new ArrayList<>();
         for (int j = 0; j < backstack.size(); j++) {
-            FragmentTransaction transaction = backstack.get(j);
-            Bundle fragmentBundle = new Bundle();
-            transaction.onSaveState(fragmentBundle);
-            managerBundle.add(fragmentBundle);
+            FragmentState transaction = backstack.get(j);
+            transaction.onSaveState();
+            managerBundle.add(transaction.state);
         }
-        bundle.putParcelableArrayList("fragmentManagerBackstack", managerBundle);
+        bundle.putParcelableArrayList("fragmentManagerBackstack", managerBundle);*/
     }
 
     public void restore(Bundle bundle) {
@@ -318,7 +310,7 @@ public class FragmentManager implements FragmentManagerInterface {
     }
 
     @NonNull
-    private ViewGroup getContainer(FragmentTransaction transaction) {
+    private ViewGroup getContainer(FragmentState transaction) {
         if (transaction.id != 0) {
             for (int i = roots.size() - 1; i >= 0; i--) {
                 View v = roots.get(i).findViewById(transaction.id);

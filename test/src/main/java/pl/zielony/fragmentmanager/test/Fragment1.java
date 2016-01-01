@@ -1,6 +1,9 @@
 package pl.zielony.fragmentmanager.test;
 
+import android.os.Parcelable;
+import android.util.SparseArray;
 import android.view.View;
+import android.widget.EditText;
 
 import pl.zielony.fragmentmanager.Fragment;
 import pl.zielony.fragmentmanager.FragmentManager;
@@ -15,6 +18,21 @@ public class Fragment1 extends Fragment {
 
     @Override
     protected View onCreateView() {
-        return View.inflate(getContext(), R.layout.fragment1, null);
+        View view = View.inflate(getContext(), R.layout.fragment1, null);
+        final EditText et = (EditText) view.findViewById(R.id.et);
+        final SparseArray<Parcelable> container = new SparseArray<Parcelable>();
+        view.findViewById(R.id.save).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                et.saveHierarchyState(container);
+            }
+        });
+        view.findViewById(R.id.restore).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                et.restoreHierarchyState(container);
+            }
+        });
+        return view;
     }
 }

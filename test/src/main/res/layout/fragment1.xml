@@ -1,7 +1,23 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<carbon.widget.LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:background="#ffff7f7f"
     android:orientation="vertical" android:layout_width="match_parent"
     android:layout_height="match_parent">
 
-</LinearLayout>
+    <carbon.widget.EditText
+        android:id="@+id/et"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"/>
+
+    <carbon.widget.Button
+        android:id="@+id/save"
+        android:text="save"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"/>
+
+    <carbon.widget.Button
+        android:id="@+id/restore"
+        android:text="restore"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"/>
+</carbon.widget.LinearLayout>

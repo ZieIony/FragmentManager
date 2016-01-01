@@ -135,7 +135,7 @@ public abstract class Fragment implements FragmentManagerInterface {
         return "";
     }
 
-    public void animateInAdd(Animator.AnimatorListener listener) {
+    public void animateInAdd() {
         final View view = getView();
         ValueAnimator animator = ValueAnimator.ofFloat(1.1f, 1);
         animator.setDuration(200);
@@ -149,9 +149,7 @@ public abstract class Fragment implements FragmentManagerInterface {
                 ViewHelper.setScaleY(view, value);
             }
         });
-        if (listener != null)
-            animator.addListener(listener);
-        animator.start();
+          animator.start();
     }
 
     public void animateOutAdd(AnimatorListenerAdapter listener) {
@@ -274,13 +272,13 @@ public abstract class Fragment implements FragmentManagerInterface {
     }
 
     @Override
-    public void back() {
-        childFragmentManager.back();
+    public boolean back() {
+        return childFragmentManager.back();
     }
 
     @Override
-    public void up() {
-        childFragmentManager.up();
+    public boolean up() {
+        return childFragmentManager.up();
     }
 
     @Override

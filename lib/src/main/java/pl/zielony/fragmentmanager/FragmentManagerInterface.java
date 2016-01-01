@@ -28,9 +28,9 @@ public interface FragmentManagerInterface {
 
     <T extends Fragment> T join(Class<T> fragmentClass, String tag);
 
-    void up();
+    boolean up();
 
-    void back();
+    boolean back();
 
     boolean hasBack();
 
