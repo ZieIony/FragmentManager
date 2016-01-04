@@ -4,6 +4,8 @@ import android.app.Activity;
 import android.content.Context;
 import android.os.Bundle;
 import android.os.Handler;
+import android.os.Parcelable;
+import android.util.SparseArray;
 import android.view.View;
 import android.view.ViewGroup;
 
@@ -20,6 +22,7 @@ import java.util.List;
  */
 public abstract class Fragment implements FragmentManagerInterface {
     private static final String FRAGMENT_MANAGER = "fragmentManager";
+    private static final String HIERARCHY_STATE = "hierarchyState";
 
     private final Activity activity;
     View view;
@@ -34,13 +37,12 @@ public abstract class Fragment implements FragmentManagerInterface {
         this.fragmentManager = fragmentManager;
         handler = new Handler();
         view = onCreateView();
-        childFragmentManager = new FragmentManager(fragmentManager, view);
+        childFragmentManager = new FragmentManager(fragmentManager);
     }
 
     protected abstract View onCreateView();
 
     public void resume() {
-        fragmentManager.roots.add(view);
         onResume();
         running = true;
     }
@@ -51,7 +53,6 @@ public abstract class Fragment implements FragmentManagerInterface {
     public void pause() {
         running = false;
         onPause();
-        fragmentManager.roots.remove(view);
     }
 
     protected void onPause() {
@@ -79,6 +80,10 @@ public abstract class Fragment implements FragmentManagerInterface {
 
     public FragmentManager getFragmentManager() {
         return fragmentManager;
+    }
+
+    public FragmentManager getChildFragmentManager() {
+        return childFragmentManager;
     }
 
     public View findViewById(int id) {
@@ -149,7 +154,7 @@ public abstract class Fragment implements FragmentManagerInterface {
                 ViewHelper.setScaleY(view, value);
             }
         });
-          animator.start();
+        animator.start();
     }
 
     public void animateOutAdd(AnimatorListenerAdapter listener) {
@@ -187,9 +192,14 @@ public abstract class Fragment implements FragmentManagerInterface {
         Bundle fragmentManagerBundle = new Bundle();
         childFragmentManager.save(fragmentManagerBundle);
         bundle.putBundle(FRAGMENT_MANAGER, fragmentManagerBundle);
+
+        SparseArray<Parcelable> container = new SparseArray<>();
+        view.saveHierarchyState(container);
+        bundle.putSparseParcelableArray(HIERARCHY_STATE, container);
     }
 
     public void onRestoreState(Bundle bundle) {
+        view.restoreHierarchyState(bundle.getSparseParcelableArray(HIERARCHY_STATE));
         childFragmentManager.restore(bundle.getBundle(FRAGMENT_MANAGER));
     }
 
@@ -199,30 +209,6 @@ public abstract class Fragment implements FragmentManagerInterface {
 
     public String getString(int resId, Object... args) {
         return activity.getString(resId, args);
-    }
-
-    public <T extends Fragment> T push(T fragment, final int id) {
-        T f = childFragmentManager.push(fragment, id);
-        f.setParent(this);
-        return f;
-    }
-
-    public <T extends Fragment> T push(T fragment, String tag) {
-        T f = childFragmentManager.push(fragment, tag);
-        f.setParent(this);
-        return f;
-    }
-
-    public <T extends Fragment> T push(Class<T> fragmentClass, final int id) {
-        T f = childFragmentManager.push(fragmentClass, id);
-        f.setParent(this);
-        return f;
-    }
-
-    public <T extends Fragment> T push(Class<T> fragmentClass, String tag) {
-        T f = childFragmentManager.push(fragmentClass, tag);
-        f.setParent(this);
-        return f;
     }
 
     public <T extends Fragment> T add(T fragment, int id) {
@@ -249,6 +235,30 @@ public abstract class Fragment implements FragmentManagerInterface {
         return f;
     }
 
+    public <T extends Fragment> T push(T fragment, int id) {
+        T f = childFragmentManager.push(fragment, id);
+        f.setParent(this);
+        return f;
+    }
+
+    public <T extends Fragment> T push(T fragment, String tag) {
+        T f = childFragmentManager.push(fragment, tag);
+        f.setParent(this);
+        return f;
+    }
+
+    public <T extends Fragment> T push(Class<T> fragmentClass, int id) {
+        T f = childFragmentManager.push(fragmentClass, id);
+        f.setParent(this);
+        return f;
+    }
+
+    public <T extends Fragment> T push(Class<T> fragmentClass, String tag) {
+        T f = childFragmentManager.push(fragmentClass, tag);
+        f.setParent(this);
+        return f;
+    }
+
     public <T extends Fragment> T join(T fragment, int id) {
         T f = childFragmentManager.join(fragment, id);
         f.setParent(this);
@@ -268,7 +278,9 @@ public abstract class Fragment implements FragmentManagerInterface {
     }
 
     public <T extends Fragment> T join(Class<T> fragmentClass, String tag) {
-        return childFragmentManager.join(fragmentClass, tag);
+        T f = childFragmentManager.join(fragmentClass, tag);
+        f.setParent(this);
+        return f;
     }
 
     @Override

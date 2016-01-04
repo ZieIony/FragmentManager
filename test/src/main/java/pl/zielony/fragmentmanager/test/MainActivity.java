@@ -1,9 +1,11 @@
 package pl.zielony.fragmentmanager.test;
 
+import android.os.PersistableBundle;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 
 import pl.zielony.fragmentmanager.FragmentManager;
+import pl.zielony.fragmentmanager.FragmentState;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -14,8 +16,11 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        manager = new FragmentManager(this,findViewById(R.id.root));
-        manager.add(new MainFragment(manager),R.id.root);
+        manager = new FragmentManager(this);
+
+        if(savedInstanceState==null) {
+            manager.add(MainFragment.class, R.id.root, FragmentState.Mode.Join);
+        }
     }
 
     @Override
@@ -25,5 +30,17 @@ public class MainActivity extends AppCompatActivity {
         }else{
             super.onBackPressed();
         }
+    }
+
+    @Override
+    protected void onRestoreInstanceState(Bundle savedInstanceState) {
+        super.onRestoreInstanceState(savedInstanceState);
+        manager.restore(savedInstanceState);
+    }
+
+    @Override
+    protected void onSaveInstanceState(Bundle outState) {
+        super.onSaveInstanceState(outState);
+        manager.save(outState);
     }
 }

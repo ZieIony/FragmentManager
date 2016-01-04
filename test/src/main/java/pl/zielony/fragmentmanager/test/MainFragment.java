@@ -1,11 +1,11 @@
 package pl.zielony.fragmentmanager.test;
 
-import android.content.Context;
 import android.view.View;
 
 import carbon.widget.Toolbar;
 import pl.zielony.fragmentmanager.Fragment;
 import pl.zielony.fragmentmanager.FragmentManager;
+import pl.zielony.fragmentmanager.FragmentState;
 
 /**
  * Created by Marcin on 2015-12-08.
@@ -17,14 +17,14 @@ public class MainFragment extends Fragment {
         findViewById(R.id.button1).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                manager.add(Fragment1.class,"container");
+                manager.add(Fragment1.class, "container", FragmentState.Mode.Add);
             }
         });
 
         findViewById(R.id.button2).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                manager.add(Fragment2.class,"container");
+                manager.add(Fragment2.class, "container", FragmentState.Mode.Add);
             }
         });
 
@@ -32,9 +32,9 @@ public class MainFragment extends Fragment {
         toolbar.getIconView().setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                if(manager.hasUp()) {
+                if (manager.hasUp()) {
                     manager.up();
-                }else{
+                } else {
                     getActivity().onBackPressed();
                 }
             }
@@ -44,11 +44,12 @@ public class MainFragment extends Fragment {
     @Override
     protected void onResume() {
         super.onResume();
-        getFragmentManager().join(Fragment1.class,"container");
+        if (!getFragmentManager().isRestoring())
+            getFragmentManager().add(Fragment1.class, "container", FragmentState.Mode.Join);
     }
 
     @Override
     protected View onCreateView() {
-        return View.inflate(getContext(),R.layout.fragment_main,null);
+        return View.inflate(getContext(), R.layout.fragment_main, null);
     }
 }

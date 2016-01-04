@@ -5,6 +5,7 @@ import android.util.SparseArray;
 import android.view.View;
 import android.widget.EditText;
 
+import carbon.widget.TextView;
 import pl.zielony.fragmentmanager.Fragment;
 import pl.zielony.fragmentmanager.FragmentManager;
 
@@ -20,17 +21,25 @@ public class Fragment1 extends Fragment {
     protected View onCreateView() {
         View view = View.inflate(getContext(), R.layout.fragment1, null);
         final EditText et = (EditText) view.findViewById(R.id.et);
+        final TextView copy = (TextView) view.findViewById(R.id.copy);
         final SparseArray<Parcelable> container = new SparseArray<Parcelable>();
         view.findViewById(R.id.save).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                et.saveHierarchyState(container);
+                copy.setText(et.getText().toString());
+                getView().saveHierarchyState(container);
+            }
+        });
+        view.findViewById(R.id.clear).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                copy.setText("");
             }
         });
         view.findViewById(R.id.restore).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                et.restoreHierarchyState(container);
+                getView().restoreHierarchyState(container);
             }
         });
         return view;
