@@ -46,7 +46,14 @@ public class FragmentTransaction {
             if (stateChange.mode == Mode.Add) {
                 manager.inAddState(stateChange.state);
             } else {
-                manager.outAddState(stateChange.state);
+                // manager.outAddState(stateChange.state);
+            }
+        }
+        for (StateChange stateChange : changes) {
+            if (stateChange.mode == Mode.Add) {
+                manager.inAddStateAnimate(stateChange.state);
+            } else {
+                manager.outAddStateAnimate(stateChange.state);
             }
         }
     }
@@ -55,9 +62,17 @@ public class FragmentTransaction {
         for (int i = changes.size() - 1; i >= 0; i--) {
             StateChange stateChange = changes.get(i);
             if (stateChange.mode == Mode.Add) {
-                manager.outBackState(stateChange.state);
+                // manager.outBackState(stateChange.state);
             } else {
                 manager.inBackState(stateChange.state);
+            }
+        }
+        for (int i = changes.size() - 1; i >= 0; i--) {
+            StateChange stateChange = changes.get(i);
+            if (stateChange.mode == Mode.Add) {
+                manager.outBackStateAnimate(stateChange.state);
+            } else {
+                manager.inBackStateAnimate(stateChange.state);
             }
         }
     }

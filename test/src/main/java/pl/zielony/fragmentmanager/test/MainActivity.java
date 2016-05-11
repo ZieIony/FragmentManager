@@ -19,7 +19,7 @@ public class MainActivity extends AppCompatActivity {
         manager = new FragmentManager(this);
 
         if(savedInstanceState==null) {
-            manager.add(MainFragment.class, R.id.root, FragmentState.Mode.Join);
+            manager.join(MainFragment.class, R.id.root);
         }
     }
 
@@ -40,7 +40,7 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     protected void onSaveInstanceState(Bundle outState) {
-        super.onSaveInstanceState(outState);
         manager.save(outState);
+        super.onSaveInstanceState(outState);
     }
 }

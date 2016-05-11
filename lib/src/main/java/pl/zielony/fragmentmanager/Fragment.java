@@ -23,6 +23,8 @@ import java.util.List;
 public abstract class Fragment implements FragmentManagerInterface {
     private static final String FRAGMENT_MANAGER = "fragmentManager";
     private static final String HIERARCHY_STATE = "hierarchyState";
+    static final String TARGET = "target";
+    static final String ID = "id";
 
     private final Activity activity;
     View view;
@@ -31,6 +33,10 @@ public abstract class Fragment implements FragmentManagerInterface {
     private FragmentManager childFragmentManager;
     private boolean running;
     Fragment parent;
+    Integer target;
+    private Bundle result;
+    private int id;
+    static int idSequence = 0;
 
     public Fragment(FragmentManager fragmentManager) {
         this.activity = fragmentManager.getActivity();
@@ -38,9 +44,15 @@ public abstract class Fragment implements FragmentManagerInterface {
         handler = new Handler();
         view = onCreateView();
         childFragmentManager = new FragmentManager(fragmentManager);
+        id = idSequence++;
     }
 
     protected abstract View onCreateView();
+
+    public void start(){
+        onStart();
+        running = true;
+    }
 
     public void resume() {
         onResume();
@@ -48,6 +60,11 @@ public abstract class Fragment implements FragmentManagerInterface {
     }
 
     protected void onResume() {
+    }
+
+    public void finish(){
+        running = false;
+        onFinish();
     }
 
     public void pause() {
@@ -196,11 +213,32 @@ public abstract class Fragment implements FragmentManagerInterface {
         SparseArray<Parcelable> container = new SparseArray<>();
         view.saveHierarchyState(container);
         bundle.putSparseParcelableArray(HIERARCHY_STATE, container);
+
+        if (target != null)
+            bundle.putInt(TARGET, target);
+        bundle.putInt(ID, id);
     }
 
     public void onRestoreState(Bundle bundle) {
         view.restoreHierarchyState(bundle.getSparseParcelableArray(HIERARCHY_STATE));
         childFragmentManager.restore(bundle.getBundle(FRAGMENT_MANAGER));
+
+        if (bundle.containsKey(TARGET))
+            target = bundle.getInt(TARGET);
+        id = bundle.getInt(ID);
+    }
+
+    public void onResult(Bundle result) {
+    }
+
+    public void setTargetFragment(Fragment target) {
+        this.target = target.id;
+    }
+
+    public void setResult(Bundle result) {
+        if (target == null)
+            return;
+        fragmentManager.setResult(target, result);
     }
 
     public String getString(int resId) {
@@ -283,6 +321,30 @@ public abstract class Fragment implements FragmentManagerInterface {
         return f;
     }
 
+    public <T extends Fragment> T dialog(T fragment, int id) {
+        T f = childFragmentManager.dialog(fragment, id);
+        f.setParent(this);
+        return f;
+    }
+
+    public <T extends Fragment> T dialog(T fragment, String tag) {
+        T f = childFragmentManager.dialog(fragment, tag);
+        f.setParent(this);
+        return f;
+    }
+
+    public <T extends Fragment> T dialog(Class<T> fragmentClass, int id) {
+        T f = childFragmentManager.dialog(fragmentClass, id);
+        f.setParent(this);
+        return f;
+    }
+
+    public <T extends Fragment> T dialog(Class<T> fragmentClass, String tag) {
+        T f = childFragmentManager.dialog(fragmentClass, tag);
+        f.setParent(this);
+        return f;
+    }
+
     @Override
     public boolean back() {
         return childFragmentManager.back();
@@ -309,5 +371,17 @@ public abstract class Fragment implements FragmentManagerInterface {
 
     public void setParent(Fragment parent) {
         this.parent = parent;
+    }
+
+    public int getId() {
+        return id;
+    }
+
+    protected void onFinish() {
+
+    }
+
+    protected void onStart() {
+
     }
 }

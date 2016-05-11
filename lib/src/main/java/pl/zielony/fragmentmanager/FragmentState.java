@@ -7,14 +7,14 @@ import android.os.Bundle;
  */
 public class FragmentState {
     public enum Mode {
-        Push, Add, Join
+        Push, Add, Join,Dialog
     }
 
-    private static final String CLASS = "class", ID = "id", TAG = "tag", MODE = "mode", FRAGMENT = "fragment";
+    private static final String CLASS = "class", ID = "layoutId", TAG = "tag", MODE = "mode", FRAGMENT = "fragment";
 
     public Class<? extends Fragment> fragmentClass;
     public Fragment fragment;
-    public int id;
+    public int layoutId;
     public String tag;
     public Mode mode;
     public Bundle fragmentState;
@@ -23,10 +23,10 @@ public class FragmentState {
         fragmentState = new Bundle();
     }
 
-    public FragmentState(Fragment fragment, int id, String tag, Mode mode) {
+    public FragmentState(Fragment fragment, int layoutId, String tag, Mode mode) {
         this.fragment = fragment;
         this.fragmentClass = fragment.getClass();
-        this.id = id;
+        this.layoutId = layoutId;
         this.tag = tag;
         this.mode = mode;
         fragmentState = new Bundle();
@@ -34,7 +34,7 @@ public class FragmentState {
 
     public void save(Bundle bundle) {
         bundle.putString(CLASS, fragmentClass.getName());
-        bundle.putInt(ID, id);
+        bundle.putInt(ID, layoutId);
         bundle.putString(TAG, tag);
         bundle.putInt(MODE, mode.ordinal());
         bundle.putBundle(FRAGMENT, fragmentState);
@@ -43,7 +43,7 @@ public class FragmentState {
     public void restore(Bundle bundle) {
         try {
             fragmentClass = (Class<? extends Fragment>) Class.forName(bundle.getString(CLASS));
-            id = bundle.getInt(ID);
+            layoutId = bundle.getInt(ID);
             tag = bundle.getString(TAG);
             mode = Mode.values()[bundle.getInt(MODE)];
             fragmentState = bundle.getBundle(FRAGMENT);

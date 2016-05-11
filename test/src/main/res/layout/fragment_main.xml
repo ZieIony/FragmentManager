@@ -14,7 +14,7 @@
             android:layout_height="@dimen/carbon_toolbarHeight"
             android:text="Main fragment" />
 
-        <carbon.widget.FrameLayout
+        <FrameLayout
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:tag="container" />
