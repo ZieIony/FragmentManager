@@ -34,94 +34,71 @@ public class FragmentManager implements FragmentManagerInterface {
     }
 
     @Override
-    public <T extends Fragment> T add(T fragment, int id) {
-        return addFragment(fragment, id, null, FragmentState.Mode.Add);
+    public <T extends Fragment> T add(T fragment, int id, FragmentState.Mode mode) {
+        return addFragment(fragment, id, null, mode);
     }
 
     @Override
-    public <T extends Fragment> T add(T fragment, String tag) {
-        return addFragment(fragment, 0, tag, FragmentState.Mode.Add);
+    public <T extends Fragment> T add(T fragment, String tag, FragmentState.Mode mode) {
+        return addFragment(fragment, 0, tag, mode);
     }
 
     @Override
-    public <T extends Fragment> T add(Class<T> fragmentClass, int id) {
+    public <T extends Fragment> T add(Class<T> fragmentClass, int id, FragmentState.Mode mode) {
         T fragment = instantiate(fragmentClass);
-        return addFragment(fragment, id, null, FragmentState.Mode.Add);
+        return addFragment(fragment, id, null, mode);
     }
 
     @Override
-    public <T extends Fragment> T add(Class<T> fragmentClass, String tag) {
+    public <T extends Fragment> T add(Class<T> fragmentClass, String tag, FragmentState.Mode mode) {
         T fragment = instantiate(fragmentClass);
-        return addFragment(fragment, 0, tag, FragmentState.Mode.Add);
+        return addFragment(fragment, 0, tag, mode);
     }
 
     @Override
-    public <T extends Fragment> T push(T fragment, int id) {
-        return addFragment(fragment, id, null, FragmentState.Mode.Push);
+    public <T extends Fragment> T replace(T fragment, int id, FragmentState.Mode mode) {
+        return replaceFragment(fragment, id, null, mode);
     }
 
     @Override
-    public <T extends Fragment> T push(T fragment, String tag) {
-        return addFragment(fragment, 0, tag, FragmentState.Mode.Push);
+    public <T extends Fragment> T replace(T fragment, String tag, FragmentState.Mode mode) {
+        return replaceFragment(fragment, 0, tag, mode);
     }
 
     @Override
-    public <T extends Fragment> T push(Class<T> fragmentClass, int id) {
+    public <T extends Fragment> T replace(Class<T> fragmentClass, int id, FragmentState.Mode mode) {
         T fragment = instantiate(fragmentClass);
-        return addFragment(fragment, id, null, FragmentState.Mode.Push);
+        return replaceFragment(fragment, id, null, mode);
     }
 
     @Override
-    public <T extends Fragment> T push(Class<T> fragmentClass, String tag) {
+    public <T extends Fragment> T replace(Class<T> fragmentClass, String tag, FragmentState.Mode mode) {
         T fragment = instantiate(fragmentClass);
-        return addFragment(fragment, 0, tag, FragmentState.Mode.Push);
+        return replaceFragment(fragment, 0, tag, mode);
     }
 
     @Override
-    public <T extends Fragment> T join(T fragment, int id) {
-        return addFragment(fragment, id, null, FragmentState.Mode.Join);
+    public <T extends Fragment> T remove(T fragment, int id, FragmentState.Mode mode) {
+        return removeFragment(fragment, id, null, mode);
     }
 
     @Override
-    public <T extends Fragment> T join(T fragment, String tag) {
-        return addFragment(fragment, 0, tag, FragmentState.Mode.Join);
-    }
-
-    @Override
-    public <T extends Fragment> T join(Class<T> fragmentClass, int id) {
-        T fragment = instantiate(fragmentClass);
-        return addFragment(fragment, id, null, FragmentState.Mode.Join);
-    }
-
-    @Override
-    public <T extends Fragment> T join(Class<T> fragmentClass, String tag) {
-        T fragment = instantiate(fragmentClass);
-        return addFragment(fragment, 0, tag, FragmentState.Mode.Join);
-    }
-
-    @Override
-    public <T extends Fragment> T dialog(T fragment, int id) {
-        return addFragment(fragment, id, null, FragmentState.Mode.Dialog);
-    }
-
-    @Override
-    public <T extends Fragment> T dialog(T fragment, String tag) {
-        return addFragment(fragment, 0, tag, FragmentState.Mode.Dialog);
-    }
-
-    @Override
-    public <T extends Fragment> T dialog(Class<T> fragmentClass, int id) {
-        T fragment = instantiate(fragmentClass);
-        return addFragment(fragment, id, null, FragmentState.Mode.Dialog);
-    }
-
-    @Override
-    public <T extends Fragment> T dialog(Class<T> fragmentClass, String tag) {
-        T fragment = instantiate(fragmentClass);
-        return addFragment(fragment, 0, tag, FragmentState.Mode.Dialog);
+    public <T extends Fragment> T remove(T fragment, String tag, FragmentState.Mode mode) {
+        return removeFragment(fragment, 0, tag, mode);
     }
 
     private <T extends Fragment> T addFragment(T fragment, final int id, String tag, FragmentState.Mode mode) {
+        FragmentTransaction transaction = new FragmentTransaction(this);
+
+        transaction.addStateChange(new FragmentState(fragment, id, tag, mode), FragmentTransaction.Mode.Add);
+        backstack.add(transaction);
+        transaction.execute();
+
+        return (T) fragment;
+    }
+
+
+    private <T extends Fragment> T replaceFragment(T fragment, final int id, String tag, FragmentState.Mode mode) {
         FragmentTransaction transaction = new FragmentTransaction(this);
 
         if (mode != FragmentState.Mode.Dialog) {
@@ -137,6 +114,27 @@ public class FragmentManager implements FragmentManagerInterface {
         transaction.execute();
 
         return (T) fragment;
+    }
+
+    private <T extends Fragment> T removeFragment(T fragment, int id, String tag, FragmentState.Mode mode) {
+        FragmentTransaction transaction = new FragmentTransaction(this);
+
+        if (mode != FragmentState.Mode.Dialog) {
+            for (int i = activeStates.size() - 1; i >= 0; i--) {
+                final FragmentState state = activeStates.get(i);
+                if (state.layoutId == id || tag != null && tag.equals(state.tag))
+                    transaction.addStateChange(state, FragmentTransaction.Mode.Remove);
+            }
+        }
+
+        backstack.add(transaction);
+        transaction.execute();
+
+        return fragment;
+    }
+
+    private void cleanJoins() {
+
     }
 
     public boolean up() {

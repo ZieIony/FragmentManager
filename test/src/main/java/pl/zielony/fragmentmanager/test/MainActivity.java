@@ -1,8 +1,7 @@
 package pl.zielony.fragmentmanager.test;
 
-import android.os.PersistableBundle;
-import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.support.v7.app.AppCompatActivity;
 
 import pl.zielony.fragmentmanager.FragmentManager;
 import pl.zielony.fragmentmanager.FragmentState;
@@ -18,16 +17,15 @@ public class MainActivity extends AppCompatActivity {
 
         manager = new FragmentManager(this);
 
-        if(savedInstanceState==null) {
-            manager.join(MainFragment.class, R.id.root);
-        }
+        if (savedInstanceState == null)
+            manager.add(MainFragment.class, R.id.root, FragmentState.Mode.Join);
     }
 
     @Override
     public void onBackPressed() {
-        if(manager.hasBack()) {
+        if (manager.hasBack()) {
             manager.back();
-        }else{
+        } else {
             super.onBackPressed();
         }
     }

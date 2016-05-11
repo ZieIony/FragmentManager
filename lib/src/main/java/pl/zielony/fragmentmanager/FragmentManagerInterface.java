@@ -5,37 +5,25 @@ package pl.zielony.fragmentmanager;
  */
 public interface FragmentManagerInterface {
 
-    <T extends Fragment> T add(T fragment, int id);
+    <T extends Fragment> T add(T fragment, int id,FragmentState.Mode mode);
 
-    <T extends Fragment> T add(T fragment, String tag);
+    <T extends Fragment> T add(T fragment, String tag,FragmentState.Mode mode);
 
-    <T extends Fragment> T add(Class<T> fragmentClass, int id);
+    <T extends Fragment> T add(Class<T> fragmentClass, int id,FragmentState.Mode mode);
 
-    <T extends Fragment> T add(Class<T> fragmentClass, String tag);
+    <T extends Fragment> T add(Class<T> fragmentClass, String tag,FragmentState.Mode mode);
 
-    <T extends Fragment> T push(T fragment, int id);
+    <T extends Fragment> T replace(T fragment, int id,FragmentState.Mode mode);
 
-    <T extends Fragment> T push(T fragment, String tag);
+    <T extends Fragment> T replace(T fragment, String tag,FragmentState.Mode mode);
 
-    <T extends Fragment> T push(Class<T> fragmentClass, int id);
+    <T extends Fragment> T replace(Class<T> fragmentClass, int id,FragmentState.Mode mode);
 
-    <T extends Fragment> T push(Class<T> fragmentClass, String tag);
+    <T extends Fragment> T replace(Class<T> fragmentClass, String tag,FragmentState.Mode mode);
 
-    <T extends Fragment> T join(T fragment, int id);
+    <T extends Fragment> T remove(T fragment,int id,FragmentState.Mode mode);
 
-    <T extends Fragment> T join(T fragment, String tag);
-
-    <T extends Fragment> T join(Class<T> fragmentClass, int id);
-
-    <T extends Fragment> T join(Class<T> fragmentClass, String tag);
-
-    <T extends Fragment> T dialog(T fragment, int id);
-
-    <T extends Fragment> T dialog(T fragment, String tag);
-
-    <T extends Fragment> T dialog(Class<T> fragmentClass, int id);
-
-    <T extends Fragment> T dialog(Class<T> fragmentClass, String tag);
+    <T extends Fragment> T remove(T fragment,String tag, FragmentState.Mode mode);
 
     boolean up();
 

@@ -19,13 +19,13 @@ public abstract class FragmentPagerAdapter extends PagerAdapter {
     @Override
     public Object instantiateItem(ViewGroup container, int position) {
         Fragment item = getItem(position);
-        fragmentManager.join(item, container.getId());
+        fragmentManager.add(item, container.getId(), FragmentState.Mode.Join);
         return item;
     }
 
     @Override
     public void destroyItem(ViewGroup container, int position, Object object) {
-        container.removeViewAt(position);
+        fragmentManager.remove(getItem(position), container.getId(), FragmentState.Mode.Join);
     }
 
     @Override
