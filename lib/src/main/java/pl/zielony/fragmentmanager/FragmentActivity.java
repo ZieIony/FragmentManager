@@ -18,11 +18,13 @@ public class FragmentActivity extends AppCompatActivity {
 
     @Override
     public void onBackPressed() {
-        if (fragmentManager.hasBack()) {
-            fragmentManager.back();
+        if (fragmentManager.back())
             return;
-        }
         super.onBackPressed();
+    }
+
+    public void onUpPressed() {
+        fragmentManager.up();
     }
 
     @Override

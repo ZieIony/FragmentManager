@@ -139,10 +139,12 @@ public class FragmentManager implements FragmentManagerInterface {
 
     public boolean up() {
         for (int i = activeStates.size() - 1; i >= 0; i--) {
-            if (activeStates.get(i).fragment.hasUp())
-                if (activeStates.get(i).fragment.up())
-                    return true;
+            //if (activeStates.get(i).fragment.hasUp())
+            if (activeStates.get(i).fragment.up())
+                return true;
         }
+        if (!hasUp())
+            return false;
         while (backstack.size() != 0) {
             FragmentState.Mode mode = activeStates.get(activeStates.size() - 1).mode;
             FragmentTransaction transaction = backstack.remove(backstack.size() - 1);
@@ -160,10 +162,12 @@ public class FragmentManager implements FragmentManagerInterface {
      */
     public boolean back() {
         for (int i = activeStates.size() - 1; i >= 0; i--) {
-            if (activeStates.get(i).fragment.hasBack())
-                if (activeStates.get(i).fragment.back())
-                    return true;
+            //if (activeStates.get(i).fragment.hasBack())
+            if (activeStates.get(i).fragment.back())
+                return true;
         }
+        if (!hasBack())
+            return false;
         while (backstack.size() != 0) {
             FragmentState.Mode mode = activeStates.get(activeStates.size() - 1).mode;
             FragmentTransaction transaction = backstack.remove(backstack.size() - 1);
@@ -382,6 +386,16 @@ public class FragmentManager implements FragmentManagerInterface {
     public Fragment getFragment(int id) {
         for (FragmentState state : activeStates) {
             if (state.fragment.getId() == id)
+                return state.fragment;
+        }
+        return null;
+    }
+
+    public Fragment getFragment(String tag) {
+        if (tag == null)
+            return null;
+        for (FragmentState state : activeStates) {
+            if (tag.equals(state.fragment.getTag()))
                 return state.fragment;
         }
         return null;

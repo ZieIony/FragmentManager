@@ -25,6 +25,7 @@ public abstract class Fragment implements FragmentManagerInterface {
     private static final String HIERARCHY_STATE = "hierarchyState";
     static final String TARGET = "target";
     static final String ID = "id";
+    static final String TAG = "tag";
 
     private final Activity activity;
     View view;
@@ -37,6 +38,37 @@ public abstract class Fragment implements FragmentManagerInterface {
     private Bundle result;
     private int id;
     static int idSequence = 0;
+    private String tag;
+
+    class LockListenerAdapter implements Animator.AnimatorListener {
+        private FragmentRootView view;
+
+        public LockListenerAdapter(FragmentRootView view) {
+            this.view = view;
+        }
+
+        @Override
+        public void onAnimationCancel(Animator animation) {
+            view.setLocked(false);
+            animation.removeListener(this);
+        }
+
+        @Override
+        public void onAnimationRepeat(Animator animation) {
+
+        }
+
+        @Override
+        public void onAnimationStart(Animator animation) {
+            view.setLocked(true);
+        }
+
+        @Override
+        public void onAnimationEnd(Animator animation) {
+            view.setLocked(false);
+            animation.removeListener(this);
+        }
+    }
 
     public Fragment(FragmentManager fragmentManager) {
         this.activity = fragmentManager.getActivity();
@@ -171,6 +203,8 @@ public abstract class Fragment implements FragmentManagerInterface {
                 ViewHelper.setScaleY(view, value);
             }
         });
+        if (view instanceof FragmentRootView)
+            animator.addListener(new LockListenerAdapter((FragmentRootView) view));
         animator.start();
     }
 
@@ -179,6 +213,8 @@ public abstract class Fragment implements FragmentManagerInterface {
         animator.setDuration(200);
         if (listener != null)
             animator.addListener(listener);
+        if (view instanceof FragmentRootView)
+            animator.addListener(new LockListenerAdapter((FragmentRootView) view));
         animator.start();
     }
 
@@ -198,6 +234,8 @@ public abstract class Fragment implements FragmentManagerInterface {
         });
         if (listener != null)
             animator.addListener(listener);
+        if (view instanceof FragmentRootView)
+            animator.addListener(new LockListenerAdapter((FragmentRootView) view));
         animator.start();
     }
 
@@ -217,6 +255,7 @@ public abstract class Fragment implements FragmentManagerInterface {
         if (target != null)
             bundle.putInt(TARGET, target);
         bundle.putInt(ID, id);
+        bundle.putString(TAG, tag);
     }
 
     public void onRestoreState(Bundle bundle) {
@@ -226,6 +265,7 @@ public abstract class Fragment implements FragmentManagerInterface {
         if (bundle.containsKey(TARGET))
             target = bundle.getInt(TARGET);
         id = bundle.getInt(ID);
+        tag = bundle.getString(TAG);
     }
 
     public void onResult(Bundle result) {
@@ -297,12 +337,12 @@ public abstract class Fragment implements FragmentManagerInterface {
         return f;
     }
 
-    public <T extends Fragment> T remove(T fragment,int id, FragmentState.Mode mode) {
-        return childFragmentManager.remove(fragment,id, mode);
+    public <T extends Fragment> T remove(T fragment, int id, FragmentState.Mode mode) {
+        return childFragmentManager.remove(fragment, id, mode);
     }
 
-    public <T extends Fragment> T remove(T fragment,String tag, FragmentState.Mode mode) {
-        return childFragmentManager.remove(fragment,tag, mode);
+    public <T extends Fragment> T remove(T fragment, String tag, FragmentState.Mode mode) {
+        return childFragmentManager.remove(fragment, tag, mode);
     }
 
     @Override
@@ -335,6 +375,14 @@ public abstract class Fragment implements FragmentManagerInterface {
 
     public int getId() {
         return id;
+    }
+
+    public String getTag() {
+        return tag;
+    }
+
+    public void setTag(String tag) {
+        this.tag = tag;
     }
 
     protected void onFinish() {
