@@ -7,7 +7,7 @@ import android.os.Bundle;
  */
 public class FragmentState {
     public enum Mode {
-        Push, Add, Join,Dialog
+        Push, Add, Join
     }
 
     private static final String CLASS = "class", ID = "layoutId", TAG = "tag", MODE = "mode", FRAGMENT = "fragment";

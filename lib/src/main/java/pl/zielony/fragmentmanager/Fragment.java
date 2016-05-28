@@ -79,7 +79,13 @@ public abstract class Fragment implements FragmentManagerInterface {
         id = idSequence++;
     }
 
-    protected abstract View onCreateView();
+    protected View onCreateView() {
+        return View.inflate(getContext(), getViewResId(), null);
+    }
+
+    protected int getViewResId() {
+        return 0;
+    }
 
     public void start() {
         onStart();
@@ -325,8 +331,22 @@ public abstract class Fragment implements FragmentManagerInterface {
         return f;
     }
 
+    @Override
+    public <T extends Fragment, T2 extends Fragment> T replace(T2 removeFragment, T addFragment, FragmentState.Mode mode) {
+        T f = childFragmentManager.replace(removeFragment, addFragment, mode);
+        f.setParent(this);
+        return f;
+    }
+
     public <T extends Fragment> T replace(Class<T> fragmentClass, int id, FragmentState.Mode mode) {
         T f = childFragmentManager.replace(fragmentClass, id, mode);
+        f.setParent(this);
+        return f;
+    }
+
+    @Override
+    public <T extends Fragment, T2 extends Fragment> T replace(T2 removeFragment, Class<T> fragmentClass, FragmentState.Mode mode) {
+        T f = childFragmentManager.replace(removeFragment, fragmentClass, mode);
         f.setParent(this);
         return f;
     }
@@ -337,12 +357,16 @@ public abstract class Fragment implements FragmentManagerInterface {
         return f;
     }
 
-    public <T extends Fragment> T remove(T fragment, int id, FragmentState.Mode mode) {
-        return childFragmentManager.remove(fragment, id, mode);
+    public void remove(int id, FragmentState.Mode mode) {
+        childFragmentManager.remove(id, mode);
     }
 
-    public <T extends Fragment> T remove(T fragment, String tag, FragmentState.Mode mode) {
-        return childFragmentManager.remove(fragment, tag, mode);
+    public void remove(String tag, FragmentState.Mode mode) {
+        childFragmentManager.remove(tag, mode);
+    }
+
+    public <T extends Fragment> void remove(T fragment, FragmentState.Mode mode) {
+        childFragmentManager.remove(fragment, mode);
     }
 
     @Override
@@ -386,10 +410,8 @@ public abstract class Fragment implements FragmentManagerInterface {
     }
 
     protected void onFinish() {
-
     }
 
     protected void onStart() {
-
     }
 }

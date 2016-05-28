@@ -36,7 +36,7 @@ public abstract class FragmentPagerAdapter extends PagerAdapter {
 
     @Override
     public void destroyItem(ViewGroup container, int position, Object object) {
-        fragmentManager.remove(fragments.get(position), container.getId(), FragmentState.Mode.Join);
+        fragmentManager.remove(fragments.get(position), FragmentState.Mode.Join);
     }
 
     @Override

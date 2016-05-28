@@ -14,7 +14,7 @@ public class Fragment2 extends Fragment {
     }
 
     @Override
-    protected View onCreateView() {
-        return View.inflate(getContext(), R.layout.fragment2, null);
+    protected int getViewResId() {
+        return R.layout.fragment2;
     }
 }

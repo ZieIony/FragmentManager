@@ -43,12 +43,11 @@ public class MainFragment extends Fragment {
 
     @Override
     protected void onStart() {
-        super.onStart();
         getFragmentManager().add(Fragment1.class, "container", FragmentState.Mode.Join);
     }
 
     @Override
-    protected View onCreateView() {
-        return View.inflate(getContext(), R.layout.fragment_main, null);
+    protected int getViewResId() {
+        return R.layout.fragment_main;
     }
 }

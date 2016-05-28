@@ -23,8 +23,15 @@ public class FragmentTransaction {
 
         public StateChange(FragmentState state, Mode mode) {
             this.state = state;
-
             this.mode = mode;
+        }
+
+        public Mode getMode() {
+            return mode;
+        }
+
+        public FragmentState getState() {
+            return state;
         }
     }
 
@@ -42,6 +49,7 @@ public class FragmentTransaction {
     }
 
     void execute() {
+        manager.backstack.add(this);
         for (StateChange stateChange : changes) {
             if (stateChange.mode == Mode.Add) {
                 manager.inAddState(stateChange.state);
