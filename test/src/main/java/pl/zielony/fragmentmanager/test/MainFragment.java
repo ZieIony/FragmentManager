@@ -5,7 +5,7 @@ import android.view.View;
 import carbon.widget.Toolbar;
 import pl.zielony.fragmentmanager.Fragment;
 import pl.zielony.fragmentmanager.FragmentManager;
-import pl.zielony.fragmentmanager.FragmentState;
+import pl.zielony.fragmentmanager.FragmentTransaction;
 
 /**
  * Created by Marcin on 2015-12-08.
@@ -17,14 +17,14 @@ public class MainFragment extends Fragment {
         findViewById(R.id.button1).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                manager.add(Fragment1.class, "container", FragmentState.Mode.Add);
+                manager.add(Fragment1.class, "container", FragmentTransaction.Mode.Add);
             }
         });
 
         findViewById(R.id.button2).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                manager.add(Fragment2.class, "container", FragmentState.Mode.Add);
+                manager.add(Fragment2.class, "container", FragmentTransaction.Mode.Add);
             }
         });
 
@@ -43,7 +43,7 @@ public class MainFragment extends Fragment {
 
     @Override
     protected void onStart() {
-        getFragmentManager().add(Fragment1.class, "container", FragmentState.Mode.Join);
+        getFragmentManager().add(Fragment1.class, "container", FragmentTransaction.Mode.Join);
     }
 
     @Override

@@ -11,23 +11,28 @@ import java.util.List;
 public class FragmentTransaction {
     List<StateChange> changes = new ArrayList<>();
     private FragmentManager manager;
+    private Mode mode;
 
     public enum Mode {
-        Add, Remove
+        Push, Add, Join
     }
 
     public static class StateChange {
-
-        private final FragmentState state;
-        private final Mode mode;
-
-        public StateChange(FragmentState state, Mode mode) {
-            this.state = state;
-            this.mode = mode;
+        public enum Change {
+            Add, Remove
         }
 
-        public Mode getMode() {
-            return mode;
+
+        private final FragmentState state;
+        private final Change change;
+
+        public StateChange(FragmentState state, Change change) {
+            this.state = state;
+            this.change = change;
+        }
+
+        public Change getChange() {
+            return change;
         }
 
         public FragmentState getState() {
@@ -35,30 +40,34 @@ public class FragmentTransaction {
         }
     }
 
-    public FragmentTransaction(FragmentManager manager) {
-        this.manager = manager;
+    public FragmentTransaction(FragmentManager fragmentManager) {
+        this.manager = fragmentManager;
     }
 
-    public FragmentTransaction(FragmentManager manager, FragmentState state, Mode mode) {
+    public FragmentTransaction(FragmentManager manager, Mode mode) {
         this.manager = manager;
-        addStateChange(state, mode);
+        this.mode = mode;
     }
 
-    public void addStateChange(FragmentState state, Mode mode) {
-        changes.add(new StateChange(state, mode));
+    public Mode getMode() {
+        return mode;
+    }
+
+    public void addStateChange(FragmentState state, StateChange.Change change) {
+        changes.add(new StateChange(state, change));
     }
 
     void execute() {
         manager.backstack.add(this);
         for (StateChange stateChange : changes) {
-            if (stateChange.mode == Mode.Add) {
+            if (stateChange.change == StateChange.Change.Add) {
                 manager.inAddState(stateChange.state);
             } else {
                 // manager.outAddState(stateChange.state);
             }
         }
         for (StateChange stateChange : changes) {
-            if (stateChange.mode == Mode.Add) {
+            if (stateChange.change == StateChange.Change.Add) {
                 manager.inAddStateAnimate(stateChange.state);
             } else {
                 manager.outAddStateAnimate(stateChange.state);
@@ -69,7 +78,7 @@ public class FragmentTransaction {
     public void undo() {
         for (int i = changes.size() - 1; i >= 0; i--) {
             StateChange stateChange = changes.get(i);
-            if (stateChange.mode == Mode.Add) {
+            if (stateChange.change == StateChange.Change.Add) {
                 // manager.outBackState(stateChange.state);
             } else {
                 manager.inBackState(stateChange.state);
@@ -77,7 +86,7 @@ public class FragmentTransaction {
         }
         for (int i = changes.size() - 1; i >= 0; i--) {
             StateChange stateChange = changes.get(i);
-            if (stateChange.mode == Mode.Add) {
+            if (stateChange.change == StateChange.Change.Add) {
                 manager.outBackStateAnimate(stateChange.state);
             } else {
                 manager.inBackStateAnimate(stateChange.state);
@@ -90,20 +99,22 @@ public class FragmentTransaction {
         int[] states = new int[changes.size()];
         for (int i = 0; i < changes.size(); i++) {
             StateChange change = changes.get(i);
-            modes[i] = change.mode.ordinal();
+            modes[i] = change.change.ordinal();
             if (!allStates.contains(change.state))
                 allStates.add(change.state);
             states[i] = allStates.indexOf(change.state);
         }
         bundle.putIntArray("modes", modes);
         bundle.putIntArray("states", states);
+        bundle.putInt("mode", mode.ordinal());
     }
 
     public void restore(Bundle bundle, List<FragmentState> allStates) {
         int[] modes = bundle.getIntArray("modes");
         int[] states = bundle.getIntArray("states");
+        mode = Mode.values()[bundle.getInt("mode")];
 
         for (int i = 0; i < modes.length; i++)
-            changes.add(new StateChange(allStates.get(states[i]), Mode.values()[modes[i]]));
+            changes.add(new StateChange(allStates.get(states[i]), StateChange.Change.values()[modes[i]]));
     }
 }

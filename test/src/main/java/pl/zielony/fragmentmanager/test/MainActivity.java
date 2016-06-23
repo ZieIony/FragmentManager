@@ -1,11 +1,9 @@
 package pl.zielony.fragmentmanager.test;
 
 import android.os.Bundle;
-import android.support.v7.app.AppCompatActivity;
 
 import pl.zielony.fragmentmanager.FragmentActivity;
-import pl.zielony.fragmentmanager.FragmentManager;
-import pl.zielony.fragmentmanager.FragmentState;
+import pl.zielony.fragmentmanager.FragmentTransaction;
 
 public class MainActivity extends FragmentActivity {
 
@@ -15,7 +13,7 @@ public class MainActivity extends FragmentActivity {
         setContentView(R.layout.activity_main);
 
         if (savedInstanceState == null)
-            getFragmentManager2().add(MainFragment.class, R.id.root, FragmentState.Mode.Join);
+            getFragmentManager2().add(MainFragment.class, R.id.root, FragmentTransaction.Mode.Join);
     }
 
 }
