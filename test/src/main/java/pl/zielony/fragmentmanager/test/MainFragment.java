@@ -17,14 +17,14 @@ public class MainFragment extends Fragment {
         findViewById(R.id.button1).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                manager.add(Fragment1.class, "container", FragmentTransaction.Mode.Add);
+                manager.replace(Fragment1.class, "container", FragmentTransaction.Mode.Push).execute();
             }
         });
 
         findViewById(R.id.button2).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                manager.add(Fragment2.class, "container", FragmentTransaction.Mode.Add);
+                manager.replace(Fragment2.class, "container", FragmentTransaction.Mode.Push).execute();
             }
         });
 
@@ -43,7 +43,7 @@ public class MainFragment extends Fragment {
 
     @Override
     protected void onStart() {
-        getFragmentManager().add(Fragment1.class, "container", FragmentTransaction.Mode.Join);
+        getFragmentManager().add(Fragment1.class, "container", FragmentTransaction.Mode.Join).execute();
     }
 
     @Override

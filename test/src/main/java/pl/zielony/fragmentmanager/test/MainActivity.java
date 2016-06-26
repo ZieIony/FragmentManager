@@ -13,7 +13,7 @@ public class MainActivity extends FragmentActivity {
         setContentView(R.layout.activity_main);
 
         if (savedInstanceState == null)
-            getFragmentManager2().add(MainFragment.class, R.id.root, FragmentTransaction.Mode.Join);
+            getFragmentManager2().add(MainFragment.class, R.id.root, FragmentTransaction.Mode.Join).execute();
     }
 
 }

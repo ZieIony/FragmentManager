@@ -1,6 +1,7 @@
 package pl.zielony.fragmentmanager;
 
 import android.os.Bundle;
+import android.view.View;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -10,6 +11,7 @@ import java.util.List;
  */
 public class FragmentTransaction {
     List<StateChange> changes = new ArrayList<>();
+    List<SharedElement> sharedElements = new ArrayList<>();
     private FragmentManager manager;
     private Mode mode;
 
@@ -57,7 +59,16 @@ public class FragmentTransaction {
         changes.add(new StateChange(state, change));
     }
 
-    void execute() {
+    public void addSharedElement(View view, Fragment from, Fragment to) {
+        sharedElements.add(new SharedElement(view, from, to));
+    }
+
+    public void addSharedElement(int id, Fragment from, Fragment to) {
+        sharedElements.add(new SharedElement(id, from, to));
+    }
+
+    public void execute() {
+        List<Fragment> prevFragments = new ArrayList<>(manager.getFragments());
         manager.backstack.add(this);
         for (StateChange stateChange : changes) {
             if (stateChange.change == StateChange.Change.Add) {
@@ -73,9 +84,13 @@ public class FragmentTransaction {
                 manager.outAddStateAnimate(stateChange.state);
             }
         }
+        prevFragments.addAll(manager.getFragments());
+        for (SharedElement e : sharedElements)
+            e.apply(prevFragments, false);
     }
 
     public void undo() {
+        List<Fragment> prevFragments = new ArrayList<>(manager.getFragments());
         for (int i = changes.size() - 1; i >= 0; i--) {
             StateChange stateChange = changes.get(i);
             if (stateChange.change == StateChange.Change.Add) {
@@ -92,6 +107,9 @@ public class FragmentTransaction {
                 manager.inBackStateAnimate(stateChange.state);
             }
         }
+        prevFragments.addAll(manager.getFragments());
+        for (SharedElement e : sharedElements)
+            e.apply(prevFragments, true);
     }
 
     public void save(Bundle bundle, List<FragmentState> allStates) {

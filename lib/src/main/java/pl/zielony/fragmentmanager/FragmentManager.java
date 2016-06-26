@@ -42,68 +42,63 @@ public class FragmentManager implements FragmentManagerInterface {
     // add
     // -------------------
 
-    public <T extends Fragment> T add(T fragment, int id, FragmentTransaction.Mode mode) {
-        addFragment(fragment, id, null, mode);
-        return fragment;
+    public <T extends Fragment> FragmentTransaction add(T fragment, int id, FragmentTransaction.Mode mode) {
+        return addFragment(fragment, id, null, mode);
     }
 
-    public <T extends Fragment> T add(T fragment, String tag, FragmentTransaction.Mode mode) {
-        addFragment(fragment, 0, tag, mode);
-        return fragment;
+    public <T extends Fragment> FragmentTransaction add(T fragment, String tag, FragmentTransaction.Mode mode) {
+        return addFragment(fragment, 0, tag, mode);
     }
 
-    public <T extends Fragment> T add(Class<T> fragmentClass, int id, FragmentTransaction.Mode mode) {
+    public <T extends Fragment> FragmentTransaction add(Class<T> fragmentClass, int id, FragmentTransaction.Mode mode) {
         T fragment = instantiate(fragmentClass);
         return add(fragment, id, mode);
     }
 
-    public <T extends Fragment> T add(Class<T> fragmentClass, String tag, FragmentTransaction.Mode mode) {
+    public <T extends Fragment> FragmentTransaction add(Class<T> fragmentClass, String tag, FragmentTransaction.Mode mode) {
         T fragment = instantiate(fragmentClass);
         return add(fragment, tag, mode);
     }
 
-    private void addFragment(Fragment fragment, final int id, String tag, FragmentTransaction.Mode mode) {
+    private FragmentTransaction addFragment(Fragment fragment, final int id, String tag, FragmentTransaction.Mode mode) {
         FragmentTransaction transaction = new FragmentTransaction(this, mode);
 
         transaction.addStateChange(new FragmentState(fragment, id, tag), FragmentTransaction.StateChange.Change.Add);
-        transaction.execute();
+        return transaction;
     }
 
     // -------------------
     // replace
     // -------------------
 
-    public <T extends Fragment> T replace(T addFragment, int id, FragmentTransaction.Mode mode) {
-        replaceFragment(null, addFragment, id, null, mode);
-        return addFragment;
+    public <T extends Fragment> FragmentTransaction replace(T addFragment, int id, FragmentTransaction.Mode mode) {
+        return replaceFragment(null, addFragment, id, null, mode);
     }
 
-    public <T extends Fragment> T replace(T addFragment, String tag, FragmentTransaction.Mode mode) {
-        replaceFragment(null, addFragment, 0, tag, mode);
-        return addFragment;
+    public <T extends Fragment> FragmentTransaction replace(T addFragment, String tag, FragmentTransaction.Mode mode) {
+        return replaceFragment(null, addFragment, 0, tag, mode);
     }
 
-    public <T extends Fragment, T2 extends Fragment> T replace(T2 removeFragment, T addFragment, FragmentTransaction.Mode mode) {
-        replaceFragment(removeFragment, addFragment, 0, null, mode);
-        return addFragment;
+    public <T extends Fragment, T2 extends Fragment> FragmentTransaction replace(T2 removeFragment, T addFragment, FragmentTransaction.Mode mode) {
+        return replaceFragment(removeFragment, addFragment, 0, null, mode);
     }
 
-    public <T extends Fragment> T replace(Class<T> fragmentClass, int id, FragmentTransaction.Mode mode) {
+    public <T extends Fragment> FragmentTransaction replace(Class<T> fragmentClass, int id, FragmentTransaction.Mode mode) {
         T fragment = instantiate(fragmentClass);
         return replace(fragment, id, mode);
     }
 
-    public <T extends Fragment> T replace(Class<T> fragmentClass, String tag, FragmentTransaction.Mode mode) {
+    public <T extends Fragment> FragmentTransaction replace(Class<T> fragmentClass, String tag, FragmentTransaction.Mode mode) {
         T fragment = instantiate(fragmentClass);
         return replace(fragment, tag, mode);
     }
 
-    public <T extends Fragment, T2 extends Fragment> T replace(T2 removeFragment, Class<T> fragmentClass, FragmentTransaction.Mode mode) {
+    public <T extends Fragment, T2 extends Fragment> FragmentTransaction replace(T2 removeFragment, Class<T> fragmentClass, FragmentTransaction.Mode mode) {
         T fragment = instantiate(fragmentClass);
         return replace(removeFragment, fragment, mode);
     }
 
-    private void replaceFragment(Fragment removeFragment, Fragment fragment, int id, String tag, FragmentTransaction.Mode mode) {
+    private FragmentTransaction replaceFragment(Fragment removeFragment, Fragment fragment, int id, String tag, FragmentTransaction.Mode mode) {
         FragmentTransaction transaction = new FragmentTransaction(this, mode);
 
         for (int i = activeStates.size() - 1; i >= 0; i--) {
@@ -117,7 +112,7 @@ public class FragmentManager implements FragmentManagerInterface {
             }
         }
 
-        transaction.execute();
+        return transaction;
     }
 
     private void removeStateFromBackstack(FragmentState state) {
@@ -136,19 +131,19 @@ public class FragmentManager implements FragmentManagerInterface {
     // remove
     // -------------------
 
-    public void remove(int id, FragmentTransaction.Mode mode) {
-        removeFragment(null, id, null, mode);
+    public FragmentTransaction remove(int id, FragmentTransaction.Mode mode) {
+        return removeFragment(null, id, null, mode);
     }
 
-    public void remove(String tag, FragmentTransaction.Mode mode) {
-        removeFragment(null, 0, tag, mode);
+    public FragmentTransaction remove(String tag, FragmentTransaction.Mode mode) {
+        return removeFragment(null, 0, tag, mode);
     }
 
-    public <T extends Fragment> void remove(T fragment, FragmentTransaction.Mode mode) {
-        removeFragment(fragment, 0, null, mode);
+    public <T extends Fragment> FragmentTransaction remove(T fragment, FragmentTransaction.Mode mode) {
+        return removeFragment(fragment, 0, null, mode);
     }
 
-    private void removeFragment(Fragment removeFragment, int id, String tag, FragmentTransaction.Mode mode) {
+    private FragmentTransaction removeFragment(Fragment removeFragment, int id, String tag, FragmentTransaction.Mode mode) {
         FragmentTransaction transaction = new FragmentTransaction(this, mode);
 
         for (int i = activeStates.size() - 1; i >= 0; i--) {
@@ -161,7 +156,7 @@ public class FragmentManager implements FragmentManagerInterface {
             }
         }
 
-        transaction.execute();
+        return transaction;
     }
 
     public boolean up() {
@@ -222,7 +217,7 @@ public class FragmentManager implements FragmentManagerInterface {
     void inAddStateAnimate(FragmentState state) {
         Fragment fragment = state.fragment;
         fragment.getView().setVisibility(View.VISIBLE);
-        fragment.animateInAdd();
+        fragment.animateStart();
     }
 
     void inBackState(FragmentState state) {
@@ -254,7 +249,7 @@ public class FragmentManager implements FragmentManagerInterface {
     void inBackStateAnimate(FragmentState state) {
         Fragment fragment = state.fragment;
         fragment.getView().setVisibility(View.VISIBLE);
-        fragment.animateInBack();
+        fragment.animateResume();
     }
 
     void outAddStateAnimate(final FragmentState state) {
@@ -262,7 +257,7 @@ public class FragmentManager implements FragmentManagerInterface {
         final ViewGroup container = getContainer(state, root);
         final View view = fragment.getView();
         activeStates.remove(state);
-        fragment.animateOutAdd(new AnimatorListenerAdapter() {
+        fragment.animatePause().addListener(new AnimatorListenerAdapter() {
             @Override
             public void onAnimationEnd(Animator animation) {
                 fragment.pause();
@@ -281,7 +276,7 @@ public class FragmentManager implements FragmentManagerInterface {
         final ViewGroup container = getContainer(state, root);
         final View view = fragment.getView();
         activeStates.remove(state);
-        fragment.animateOutBack(new AnimatorListenerAdapter() {
+        fragment.animateFinish().addListener(new AnimatorListenerAdapter() {
             @Override
             public void onAnimationEnd(Animator animation) {
                 fragment.finish();
@@ -417,7 +412,7 @@ public class FragmentManager implements FragmentManagerInterface {
         throw new RuntimeException("Unable to find layout id: " + transaction.layoutId + ", tag: " + transaction.tag);
     }
 
-    private <T extends Fragment> T instantiate(Class<T> fragmentClass) {
+    public <T extends Fragment> T instantiate(Class<T> fragmentClass) {
         Fragment fragment;
         try {
             fragment = fragmentClass.getConstructor(FragmentManager.class).newInstance(this);

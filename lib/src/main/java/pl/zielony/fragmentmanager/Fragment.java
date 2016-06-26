@@ -5,6 +5,7 @@ import android.content.Context;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Parcelable;
+import android.support.annotation.NonNull;
 import android.util.SparseArray;
 import android.view.View;
 import android.view.ViewGroup;
@@ -28,47 +29,16 @@ public abstract class Fragment implements FragmentManagerInterface {
     static final String TAG = "tag";
 
     private final Activity activity;
-    View view;
-    Handler handler;
+    private View view;
+    private Handler handler;
     private FragmentManager fragmentManager;
     private FragmentManager childFragmentManager;
     private boolean running;
-    Fragment parent;
-    Integer target;
+    private Fragment parent;
+    private Integer target;
     private int id;
     static int idSequence = 0;
     private String tag;
-    ViewGroup container;
-
-    class LockListenerAdapter implements Animator.AnimatorListener {
-        private FragmentRootView view;
-
-        public LockListenerAdapter(FragmentRootView view) {
-            this.view = view;
-        }
-
-        @Override
-        public void onAnimationCancel(Animator animation) {
-            view.setLocked(false);
-            animation.removeListener(this);
-        }
-
-        @Override
-        public void onAnimationRepeat(Animator animation) {
-
-        }
-
-        @Override
-        public void onAnimationStart(Animator animation) {
-            view.setLocked(true);
-        }
-
-        @Override
-        public void onAnimationEnd(Animator animation) {
-            view.setLocked(false);
-            animation.removeListener(this);
-        }
-    }
 
     public Fragment(FragmentManager fragmentManager) {
         this.activity = fragmentManager.getActivity();
@@ -127,7 +97,7 @@ public abstract class Fragment implements FragmentManagerInterface {
         return running;
     }
 
-    public View getView() {
+    public @NonNull View getView() {
         return view;
     }
 
@@ -201,7 +171,7 @@ public abstract class Fragment implements FragmentManagerInterface {
         return result;
     }
 
-    public void animateInAdd() {
+    public Animator animateStart() {
         final View view = getView();
         ValueAnimator animator = ValueAnimator.ofFloat(1.1f, 1);
         animator.setDuration(200);
@@ -218,19 +188,19 @@ public abstract class Fragment implements FragmentManagerInterface {
         if (view instanceof FragmentRootView)
             animator.addListener(new LockListenerAdapter((FragmentRootView) view));
         animator.start();
+        return animator;
     }
 
-    public void animateOutAdd(AnimatorListenerAdapter listener) {
+    public Animator animatePause() {
         ValueAnimator animator = ValueAnimator.ofFloat(1.1f, 1);
         animator.setDuration(200);
-        if (listener != null)
-            animator.addListener(listener);
         if (view instanceof FragmentRootView)
             animator.addListener(new LockListenerAdapter((FragmentRootView) view));
         animator.start();
+        return animator;
     }
 
-    public void animateOutBack(Animator.AnimatorListener listener) {
+    public ValueAnimator animateFinish() {
         final View view = getView();
         ValueAnimator animator = ValueAnimator.ofFloat(1, 1.1f);
         animator.setDuration(200);
@@ -244,15 +214,14 @@ public abstract class Fragment implements FragmentManagerInterface {
                 ViewHelper.setScaleY(view, value);
             }
         });
-        if (listener != null)
-            animator.addListener(listener);
         if (view instanceof FragmentRootView)
             animator.addListener(new LockListenerAdapter((FragmentRootView) view));
         animator.start();
+        return animator;
     }
 
-    public void animateInBack() {
-
+    public Animator animateResume() {
+        return null;
     }
 
     public void onSaveState(Bundle bundle) {
@@ -301,78 +270,73 @@ public abstract class Fragment implements FragmentManagerInterface {
         return activity.getString(resId, args);
     }
 
-    public <T extends Fragment> T add(T fragment, int id, FragmentTransaction.Mode mode) {
-        T f = childFragmentManager.add(fragment, id, mode);
-        f.setParent(this);
-        return f;
+    public <T extends Fragment> FragmentTransaction add(T fragment, int id, FragmentTransaction.Mode mode) {
+        fragment.setParent(this);
+        return childFragmentManager.add(fragment, id, mode);
     }
 
-    public <T extends Fragment> T add(T fragment, String tag, FragmentTransaction.Mode mode) {
-        T f = childFragmentManager.add(fragment, tag, mode);
-        f.setParent(this);
-        return f;
+    public <T extends Fragment> FragmentTransaction add(T fragment, String tag, FragmentTransaction.Mode mode) {
+        fragment.setParent(this);
+        return childFragmentManager.add(fragment, tag, mode);
     }
 
-    public <T extends Fragment> T add(Class<T> fragmentClass, int id, FragmentTransaction.Mode mode) {
-        T f = childFragmentManager.add(fragmentClass, id, mode);
-        f.setParent(this);
-        return f;
+    public <T extends Fragment> FragmentTransaction add(Class<T> fragmentClass, int id, FragmentTransaction.Mode mode) {
+        T fragment = childFragmentManager.instantiate(fragmentClass);
+        fragment.setParent(this);
+        return childFragmentManager.add(fragment, id, mode);
     }
 
-    public <T extends Fragment> T add(Class<T> fragmentClass, String tag, FragmentTransaction.Mode mode) {
-        T f = childFragmentManager.add(fragmentClass, tag, mode);
-        f.setParent(this);
-        return f;
+    public <T extends Fragment> FragmentTransaction add(Class<T> fragmentClass, String tag, FragmentTransaction.Mode mode) {
+        T fragment = childFragmentManager.instantiate(fragmentClass);
+        fragment.setParent(this);
+        return childFragmentManager.add(fragment, tag, mode);
     }
 
-    public <T extends Fragment> T replace(T fragment, int id, FragmentTransaction.Mode mode) {
-        T f = childFragmentManager.replace(fragment, id, mode);
-        f.setParent(this);
-        return f;
+    public <T extends Fragment> FragmentTransaction replace(T fragment, int id, FragmentTransaction.Mode mode) {
+        fragment.setParent(this);
+        return childFragmentManager.replace(fragment, id, mode);
     }
 
-    public <T extends Fragment> T replace(T fragment, String tag, FragmentTransaction.Mode mode) {
-        T f = childFragmentManager.replace(fragment, tag, mode);
-        f.setParent(this);
-        return f;
+    public <T extends Fragment> FragmentTransaction replace(T fragment, String tag, FragmentTransaction.Mode mode) {
+        fragment.setParent(this);
+        return childFragmentManager.replace(fragment, tag, mode);
     }
 
     @Override
-    public <T extends Fragment, T2 extends Fragment> T replace(T2 removeFragment, T addFragment, FragmentTransaction.Mode mode) {
-        T f = childFragmentManager.replace(removeFragment, addFragment, mode);
-        f.setParent(this);
-        return f;
+    public <T extends Fragment, T2 extends Fragment> FragmentTransaction replace(T2 removeFragment, T addFragment, FragmentTransaction.Mode mode) {
+        addFragment.setParent(this);
+        return childFragmentManager.replace(removeFragment, addFragment, mode);
     }
 
-    public <T extends Fragment> T replace(Class<T> fragmentClass, int id, FragmentTransaction.Mode mode) {
-        T f = childFragmentManager.replace(fragmentClass, id, mode);
-        f.setParent(this);
-        return f;
+    public <T extends Fragment> FragmentTransaction replace(Class<T> fragmentClass, int id, FragmentTransaction.Mode mode) {
+        T fragment = childFragmentManager.instantiate(fragmentClass);
+        fragment.setParent(this);
+        return childFragmentManager.replace(fragment, id, mode);
     }
 
     @Override
-    public <T extends Fragment, T2 extends Fragment> T replace(T2 removeFragment, Class<T> fragmentClass, FragmentTransaction.Mode mode) {
-        T f = childFragmentManager.replace(removeFragment, fragmentClass, mode);
-        f.setParent(this);
-        return f;
+    public <T extends Fragment, T2 extends Fragment> FragmentTransaction replace(T2 removeFragment, Class<T> fragmentClass, FragmentTransaction.Mode mode) {
+        T fragment = childFragmentManager.instantiate(fragmentClass);
+        fragment.setParent(this);
+        return childFragmentManager.replace(removeFragment, fragment, mode);
     }
 
-    public <T extends Fragment> T replace(Class<T> fragmentClass, String tag, FragmentTransaction.Mode mode) {
-        T f = childFragmentManager.replace(fragmentClass, tag, mode);
-        f.setParent(this);
-        return f;
+    public <T extends Fragment> FragmentTransaction replace(Class<T> fragmentClass, String tag, FragmentTransaction.Mode mode) {
+        T fragment = childFragmentManager.instantiate(fragmentClass);
+        fragment.setParent(this);
+        return childFragmentManager.replace(fragment, tag, mode);
     }
 
-    public void remove(int id, FragmentTransaction.Mode mode) {
-        childFragmentManager.remove(id, mode);
+    public FragmentTransaction remove(int id, FragmentTransaction.Mode mode) {
+        return childFragmentManager.remove(id, mode);
     }
 
-    public void remove(String tag, FragmentTransaction.Mode mode) {
-        childFragmentManager.remove(tag, mode);
+    public FragmentTransaction remove(String tag, FragmentTransaction.Mode mode) {
+        return childFragmentManager.remove(tag, mode);
     }
 
-    public <T extends Fragment> void remove(T fragment, FragmentTransaction.Mode mode) {
-        childFragmentManager.remove(fragment, mode);
+    public <T extends Fragment> FragmentTransaction remove(T fragment, FragmentTransaction.Mode mode) {
+        return childFragmentManager.remove(fragment, mode);
     }
 
     @Override
