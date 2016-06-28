@@ -59,12 +59,8 @@ public class FragmentTransaction {
         changes.add(new StateChange(state, change));
     }
 
-    public void addSharedElement(View view, Fragment from, Fragment to) {
-        sharedElements.add(new SharedElement(view, from, to));
-    }
-
-    public void addSharedElement(int id, Fragment from, Fragment to) {
-        sharedElements.add(new SharedElement(id, from, to));
+    public void addSharedElement(SharedElement sharedElement) {
+        sharedElements.add(sharedElement);
     }
 
     public void execute() {

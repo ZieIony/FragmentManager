@@ -15,5 +15,14 @@
         android:id="@+id/below"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:background="#ff7f7fff" />
+        android:background="@color/carbon_bluegrey_700">
+
+        <carbon.widget.TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:padding="@dimen/carbon_margin"
+            android:text="Perry the platypus"
+            android:textAppearance="?attr/carbon_textAppearanceTitle"
+            android:textColor="@color/carbon_white" />
+    </FrameLayout>
 </LinearLayout>
