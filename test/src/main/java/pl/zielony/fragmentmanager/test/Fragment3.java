@@ -15,9 +15,6 @@ import pl.zielony.fragmentmanager.LockListenerAdapter;
  * Created by Marcin on 2015-12-08.
  */
 public class Fragment3 extends Fragment {
-    public Fragment3(FragmentManager fragmentManager) {
-        super(fragmentManager);
-    }
 
     @Override
     protected int getViewResId() {

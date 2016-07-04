@@ -1,5 +1,7 @@
 package pl.zielony.fragmentmanager;
 
+import android.content.Intent;
+
 /**
  * Created by Marcin on 2015-12-15.
  */
@@ -38,4 +40,5 @@ public interface FragmentManagerInterface {
     boolean hasBack();
 
     boolean hasUp();
+
 }

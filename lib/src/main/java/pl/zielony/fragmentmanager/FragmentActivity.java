@@ -1,5 +1,6 @@
 package pl.zielony.fragmentmanager;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
 import android.support.v7.app.AppCompatActivity;
@@ -41,5 +42,41 @@ public class FragmentActivity extends AppCompatActivity {
 
     public FragmentManager getFragmentManager2() {
         return fragmentManager;
+    }
+
+    @Override
+    protected void onStart() {
+        super.onStart();
+        fragmentManager.onStart();
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        fragmentManager.onResume();
+    }
+
+    @Override
+    protected void onPause() {
+        fragmentManager.onPause();
+        super.onPause();
+    }
+
+    @Override
+    protected void onStop() {
+        fragmentManager.onStop();
+        super.onStop();
+    }
+
+    @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        fragmentManager.onNewIntent(intent);
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        fragmentManager.onActivityResult(requestCode, resultCode, data);
     }
 }

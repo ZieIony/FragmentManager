@@ -2,6 +2,7 @@ package pl.zielony.fragmentmanager;
 
 import android.app.Activity;
 import android.content.Context;
+import android.content.Intent;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Parcelable;
@@ -11,7 +12,6 @@ import android.view.View;
 import android.view.ViewGroup;
 
 import com.nineoldandroids.animation.Animator;
-import com.nineoldandroids.animation.AnimatorListenerAdapter;
 import com.nineoldandroids.animation.ValueAnimator;
 import com.nineoldandroids.view.ViewHelper;
 
@@ -24,29 +24,50 @@ import java.util.List;
 public abstract class Fragment implements FragmentManagerInterface {
     private static final String FRAGMENT_MANAGER = "fragmentManager";
     private static final String HIERARCHY_STATE = "hierarchyState";
-    static final String TARGET = "target";
-    static final String ID = "id";
-    static final String TAG = "tag";
+    private static final String TARGET = "target";
+    private static final String ID = "id";
+    private static final String TAG = "tag";
+    private static final String FRESH = "fresh";
+    private final XmlFragment annotation;
 
-    private final Activity activity;
+    private Activity activity;
     private View view;
     private Handler handler;
     private FragmentManager fragmentManager;
     private FragmentManager childFragmentManager;
-    private boolean running;
     private Fragment parent;
     private Integer target;
     private int id;
-    static int idSequence = 0;
+    private static int idSequence = 0;
     private String tag;
+    private boolean fresh;
+    private boolean started;
+    private boolean running;
+    private boolean pooling;
 
-    public Fragment(FragmentManager fragmentManager) {
+    public Fragment() {
+        annotation = getClass().getAnnotation(XmlFragment.class);
+        clear();
+    }
+
+    void clear() {
+        fresh = true;
+        handler = new Handler();
+        childFragmentManager = null;
+        id = idSequence++;
+    }
+
+    void init(FragmentManager fragmentManager) {
         this.activity = fragmentManager.getActivity();
         this.fragmentManager = fragmentManager;
-        handler = new Handler();
-        view = onCreateView();
         childFragmentManager = new FragmentManager(fragmentManager);
-        id = idSequence++;
+        if (view == null)
+            view = onCreateView();
+        onCreate();
+    }
+
+    protected void onCreate() {
+
     }
 
     protected View onCreateView() {
@@ -54,25 +75,36 @@ public abstract class Fragment implements FragmentManagerInterface {
     }
 
     protected int getViewResId() {
-        XmlFragment annotation = getClass().getAnnotation(XmlFragment.class);
         if (annotation != null)
             return annotation.layout();
         return 0;
     }
 
     public String getTitle() {
-        XmlFragment annotation = getClass().getAnnotation(XmlFragment.class);
         if (annotation != null)
             return getString(annotation.title());
         return "";
     }
 
     public void start() {
+        if (started)
+            return;
+        if (fresh)
+            onFreshStart();
         onStart();
-        running = true;
+        started = true;
+        fresh = false;
+    }
+
+    protected void onFreshStart() {
+    }
+
+    protected void onStart() {
     }
 
     public void resume() {
+        if (running)
+            return;
         onResume();
         running = true;
     }
@@ -80,12 +112,10 @@ public abstract class Fragment implements FragmentManagerInterface {
     protected void onResume() {
     }
 
-    public void finish() {
-        running = false;
-        onFinish();
-    }
 
     public void pause() {
+        if (!running)
+            return;
         running = false;
         onPause();
     }
@@ -93,11 +123,23 @@ public abstract class Fragment implements FragmentManagerInterface {
     protected void onPause() {
     }
 
+    public void stop() {
+        if (!started)
+            return;
+        started = false;
+        onStop();
+    }
+
+    protected void onStop() {
+    }
+
     public boolean isRunning() {
         return running;
     }
 
-    public @NonNull View getView() {
+    public
+    @NonNull
+    View getView() {
         return view;
     }
 
@@ -146,6 +188,10 @@ public abstract class Fragment implements FragmentManagerInterface {
         }
 
         return result;
+    }
+
+    public View findViewWithTag(Object tag) {
+        return view.findViewWithTag(tag);
     }
 
     public List<View> findViewsWithTag(Object tag) {
@@ -237,6 +283,7 @@ public abstract class Fragment implements FragmentManagerInterface {
             bundle.putInt(TARGET, target);
         bundle.putInt(ID, id);
         bundle.putString(TAG, tag);
+        bundle.putBoolean(FRESH, fresh);
     }
 
     public void onRestoreState(Bundle bundle) {
@@ -247,6 +294,7 @@ public abstract class Fragment implements FragmentManagerInterface {
             target = bundle.getInt(TARGET);
         id = bundle.getInt(ID);
         tag = bundle.getString(TAG);
+        fresh = bundle.getBoolean(FRESH);
     }
 
     public void onResult(Bundle result) {
@@ -379,10 +427,23 @@ public abstract class Fragment implements FragmentManagerInterface {
         this.tag = tag;
     }
 
-    protected void onFinish() {
+    protected void onNewIntent(Intent intent) {
+
     }
 
-    protected void onStart() {
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+
     }
 
+    public boolean isFresh() {
+        return fresh;
+    }
+
+    public void setPoolingEnabled(boolean pooling) {
+        this.pooling = pooling;
+    }
+
+    public boolean isPoolingEnabled() {
+        return pooling;
+    }
 }

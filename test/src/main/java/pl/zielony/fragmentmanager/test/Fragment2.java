@@ -1,5 +1,7 @@
 package pl.zielony.fragmentmanager.test;
 
+import android.provider.Settings;
+import android.util.Log;
 import android.view.View;
 
 import pl.zielony.fragmentmanager.Fragment;
@@ -12,8 +14,8 @@ import pl.zielony.fragmentmanager.SharedElement;
  * Created by Marcin on 2015-12-08.
  */
 public class Fragment2 extends Fragment {
-    public Fragment2(FragmentManager fragmentManager) {
-        super(fragmentManager);
+    @Override
+    protected void onCreate() {
 
         findViewById(R.id.row).setOnClickListener(new View.OnClickListener() {
             @Override

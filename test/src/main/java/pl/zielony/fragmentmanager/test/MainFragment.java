@@ -6,25 +6,26 @@ import carbon.widget.Toolbar;
 import pl.zielony.fragmentmanager.Fragment;
 import pl.zielony.fragmentmanager.FragmentManager;
 import pl.zielony.fragmentmanager.FragmentTransaction;
+import pl.zielony.fragmentmanager.XmlFragment;
 
 /**
  * Created by Marcin on 2015-12-08.
  */
+@XmlFragment(layout = R.layout.fragment_main)
 public class MainFragment extends Fragment {
-    public MainFragment(final FragmentManager manager) {
-        super(manager);
-
+    @Override
+    protected void onCreate() {
         findViewById(R.id.button1).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                manager.replace(Fragment1.class, "container", FragmentTransaction.Mode.Push).execute();
+                getFragmentManager().replace(Fragment1.class, "container", FragmentTransaction.Mode.Push).execute();
             }
         });
 
         findViewById(R.id.button2).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                manager.replace(Fragment2.class, "container", FragmentTransaction.Mode.Push).execute();
+                getFragmentManager().replace(Fragment2.class, "container", FragmentTransaction.Mode.Push).execute();
             }
         });
 
@@ -32,22 +33,14 @@ public class MainFragment extends Fragment {
         toolbar.getIconView().setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                if (manager.hasUp()) {
-                    manager.up();
+                if (getFragmentManager().hasUp()) {
+                    getFragmentManager().up();
                 } else {
                     getActivity().onBackPressed();
                 }
             }
         });
-    }
 
-    @Override
-    protected void onStart() {
         getFragmentManager().add(Fragment1.class, "container", FragmentTransaction.Mode.Join).execute();
-    }
-
-    @Override
-    protected int getViewResId() {
-        return R.layout.fragment_main;
     }
 }
