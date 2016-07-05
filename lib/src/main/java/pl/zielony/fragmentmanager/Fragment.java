@@ -385,6 +385,22 @@ public abstract class Fragment {
         return childFragmentManager.remove(fragment, mode);
     }
 
+    public boolean back() {
+        return childFragmentManager.back();
+    }
+
+    public boolean up() {
+        return childFragmentManager.up();
+    }
+
+    public boolean hasBack() {
+        return childFragmentManager.hasBack();
+    }
+
+    public boolean hasUp() {
+        return childFragmentManager.hasUp();
+    }
+
     public Fragment getParent() {
         return parent;
     }
