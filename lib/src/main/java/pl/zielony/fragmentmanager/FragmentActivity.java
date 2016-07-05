@@ -4,6 +4,7 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
 import android.support.v7.app.AppCompatActivity;
+import android.view.KeyEvent;
 
 /**
  * Created by Marcin on 2016-05-11.
@@ -78,5 +79,10 @@ public class FragmentActivity extends AppCompatActivity {
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
         fragmentManager.onActivityResult(requestCode, resultCode, data);
+    }
+
+    @Override
+    public boolean dispatchKeyEvent(KeyEvent event) {
+        return fragmentManager.onKeyEvent(event) || super.dispatchKeyEvent(event);
     }
 }

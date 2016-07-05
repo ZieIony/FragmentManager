@@ -8,6 +8,7 @@ import android.os.Handler;
 import android.os.Parcelable;
 import android.support.annotation.NonNull;
 import android.util.SparseArray;
+import android.view.KeyEvent;
 import android.view.View;
 import android.view.ViewGroup;
 
@@ -21,7 +22,7 @@ import java.util.List;
 /**
  * Created by Marcin on 2015-03-20.
  */
-public abstract class Fragment implements FragmentManagerInterface {
+public abstract class Fragment {
     private static final String FRAGMENT_MANAGER = "fragmentManager";
     private static final String HIERARCHY_STATE = "hierarchyState";
     private static final String TARGET = "target";
@@ -50,7 +51,7 @@ public abstract class Fragment implements FragmentManagerInterface {
         clear();
     }
 
-    void clear() {
+    private void clear() {
         fresh = true;
         handler = new Handler();
         childFragmentManager = null;
@@ -137,9 +138,8 @@ public abstract class Fragment implements FragmentManagerInterface {
         return running;
     }
 
-    public
     @NonNull
-    View getView() {
+    public View getView() {
         return view;
     }
 
@@ -350,7 +350,6 @@ public abstract class Fragment implements FragmentManagerInterface {
         return childFragmentManager.replace(fragment, tag, mode);
     }
 
-    @Override
     public <T extends Fragment, T2 extends Fragment> FragmentTransaction replace(T2 removeFragment, T addFragment, FragmentTransaction.Mode mode) {
         addFragment.setParent(this);
         return childFragmentManager.replace(removeFragment, addFragment, mode);
@@ -362,7 +361,6 @@ public abstract class Fragment implements FragmentManagerInterface {
         return childFragmentManager.replace(fragment, id, mode);
     }
 
-    @Override
     public <T extends Fragment, T2 extends Fragment> FragmentTransaction replace(T2 removeFragment, Class<T> fragmentClass, FragmentTransaction.Mode mode) {
         T fragment = childFragmentManager.instantiate(fragmentClass);
         fragment.setParent(this);
@@ -387,26 +385,6 @@ public abstract class Fragment implements FragmentManagerInterface {
         return childFragmentManager.remove(fragment, mode);
     }
 
-    @Override
-    public boolean back() {
-        return childFragmentManager.back();
-    }
-
-    @Override
-    public boolean up() {
-        return childFragmentManager.up();
-    }
-
-    @Override
-    public boolean hasBack() {
-        return childFragmentManager.hasBack();
-    }
-
-    @Override
-    public boolean hasUp() {
-        return childFragmentManager.hasUp();
-    }
-
     public Fragment getParent() {
         return parent;
     }
@@ -428,11 +406,9 @@ public abstract class Fragment implements FragmentManagerInterface {
     }
 
     protected void onNewIntent(Intent intent) {
-
     }
 
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-
     }
 
     public boolean isFresh() {
@@ -445,5 +421,9 @@ public abstract class Fragment implements FragmentManagerInterface {
 
     public boolean isPoolingEnabled() {
         return pooling;
+    }
+
+    protected boolean onKeyEvent(KeyEvent event){
+        return false;
     }
 }

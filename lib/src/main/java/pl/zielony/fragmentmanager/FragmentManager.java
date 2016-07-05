@@ -5,6 +5,7 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.util.SparseArray;
+import android.view.KeyEvent;
 import android.view.View;
 import android.view.ViewGroup;
 
@@ -19,7 +20,7 @@ import java.util.Map;
 /**
  * Created by Marcin on 2015-03-20.
  */
-public class FragmentManager implements FragmentManagerInterface {
+public class FragmentManager {
     private static final String ACTIVE_STATES = FragmentManager.class.getName() + "fragmentManagerActiveStates";
     private static final String STATES = FragmentManager.class.getName() + "fragmentManagerStates";
     private static final String TRANSACTIONS = FragmentManager.class.getName() + "fragmentManagerTransactions";
@@ -168,7 +169,7 @@ public class FragmentManager implements FragmentManagerInterface {
     public boolean up() {
         for (int i = activeStates.size() - 1; i >= 0; i--) {
             //if (activeStates.get(i).fragment.hasUp())
-            if (activeStates.get(i).fragment.up())
+            if (activeStates.get(i).fragment.getChildFragmentManager().up())
                 return true;
         }
         if (!hasUp())
@@ -191,7 +192,7 @@ public class FragmentManager implements FragmentManagerInterface {
     public boolean back() {
         for (int i = activeStates.size() - 1; i >= 0; i--) {
             //if (activeStates.get(i).fragment.hasBack())
-            if (activeStates.get(i).fragment.back())
+            if (activeStates.get(i).fragment.getChildFragmentManager().back())
                 return true;
         }
         if (!hasBack())
@@ -551,14 +552,16 @@ public class FragmentManager implements FragmentManagerInterface {
 
     public void onNewIntent(Intent intent) {
         synchronized (FragmentManager.class) {
-            for (FragmentState state : activeStates)
+            List<FragmentState> copy = new ArrayList<>(activeStates);
+            for (FragmentState state : copy)
                 state.fragment.onNewIntent(intent);
         }
     }
 
     public void onActivityResult(int requestCode, int resultCode, Intent data) {
         synchronized (FragmentManager.class) {
-            for (FragmentState state : activeStates)
+            List<FragmentState> copy = new ArrayList<>(activeStates);
+            for (FragmentState state : copy)
                 state.fragment.onActivityResult(requestCode, resultCode, data);
         }
     }
@@ -573,4 +576,13 @@ public class FragmentManager implements FragmentManagerInterface {
             fragmentPool.put(fragment.getClass(), fragment);
     }
 
+    public boolean onKeyEvent(KeyEvent event) {
+        synchronized (FragmentManager.class) {
+            List<FragmentState> copy = new ArrayList<>(activeStates);
+            for (FragmentState state : copy)
+                if(state.fragment.onKeyEvent(event))
+                    return true;
+        }
+        return false;
+    }
 }
