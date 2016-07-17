@@ -1,6 +1,7 @@
 package pl.zielony.fragmentmanager;
 
 import android.support.v4.view.PagerAdapter;
+import android.util.SparseArray;
 import android.view.View;
 import android.view.ViewGroup;
 
@@ -11,7 +12,7 @@ import java.util.HashMap;
  */
 public abstract class FragmentPagerAdapter extends PagerAdapter {
     private FragmentManager fragmentManager;
-    HashMap<Integer, Fragment> fragments = new HashMap<>();
+    private SparseArray<Fragment> fragments = new SparseArray<>();
 
     public FragmentPagerAdapter(FragmentManager fragmentManager) {
         this.fragmentManager = fragmentManager;
@@ -30,13 +31,13 @@ public abstract class FragmentPagerAdapter extends PagerAdapter {
             item = getItem(position);
             fragments.put(position, item);
         }
-        fragmentManager.add(item, container.getId(), FragmentTransaction.Mode.Join);
+        fragmentManager.add(item, container.getId(), TransactionMode.Join);
         return item;
     }
 
     @Override
     public void destroyItem(ViewGroup container, int position, Object object) {
-        fragmentManager.remove(fragments.get(position), FragmentTransaction.Mode.Join);
+        fragmentManager.remove(fragments.get(position), TransactionMode.Join);
     }
 
     @Override

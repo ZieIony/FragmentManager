@@ -5,21 +5,21 @@ import android.os.Bundle;
 /**
  * Created by Marcin on 2015-12-02.
  */
-public class FragmentState {
+class FragmentState {
 
-    private static final String CLASS = "class", ID = "layoutId", TAG = "tag", MODE = "mode", FRAGMENT = "fragment";
+    private static final String CLASS = "class", ID = "layoutId", TAG = "tag", FRAGMENT = "fragment";
 
-    public Class<? extends Fragment> fragmentClass;
-    public Fragment fragment;
-    public int layoutId;
-    public String tag;
-    public Bundle fragmentState;
+    Class<? extends Fragment> fragmentClass;
+    Fragment fragment;
+    int layoutId;
+    String tag;
+    Bundle fragmentState;
 
-    public FragmentState() {
+    FragmentState() {
         fragmentState = new Bundle();
     }
 
-    public FragmentState(Fragment fragment, int layoutId, String tag) {
+    FragmentState(Fragment fragment, int layoutId, String tag) {
         this.fragment = fragment;
         this.fragmentClass = fragment.getClass();
         this.layoutId = layoutId;
@@ -27,14 +27,14 @@ public class FragmentState {
         fragmentState = new Bundle();
     }
 
-    public void save(Bundle bundle) {
+    void save(Bundle bundle) {
         bundle.putString(CLASS, fragmentClass.getName());
         bundle.putInt(ID, layoutId);
         bundle.putString(TAG, tag);
         bundle.putBundle(FRAGMENT, fragmentState);
     }
 
-    public void restore(Bundle bundle) {
+    void restore(Bundle bundle) {
         try {
             fragmentClass = (Class<? extends Fragment>) Class.forName(bundle.getString(CLASS));
             layoutId = bundle.getInt(ID);

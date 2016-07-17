@@ -13,8 +13,6 @@ import android.view.View;
 import android.view.ViewGroup;
 
 import com.nineoldandroids.animation.Animator;
-import com.nineoldandroids.animation.ValueAnimator;
-import com.nineoldandroids.view.ViewHelper;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -23,16 +21,20 @@ import java.util.List;
  * Created by Marcin on 2015-03-20.
  */
 public abstract class Fragment {
+    public static final int ADD = 1;
+    public static final int ACTIVITY = 2;
+    public static final int REMOVE = 4;
+
     private static final String FRAGMENT_MANAGER = "fragmentManager";
     private static final String HIERARCHY_STATE = "hierarchyState";
     private static final String TARGET = "target";
     private static final String ID = "id";
     private static final String TAG = "tag";
     private static final String FRESH = "fresh";
-    private final XmlFragment annotation;
+    private final FragmentAnnotation annotation;
 
     private Activity activity;
-    private View view;
+    private FragmentRootView view;
     private Handler handler;
     private FragmentManager fragmentManager;
     private FragmentManager childFragmentManager;
@@ -41,29 +43,46 @@ public abstract class Fragment {
     private int id;
     private static int idSequence = 0;
     private String tag;
-    private boolean fresh;
     private boolean started;
-    private boolean running;
+    private boolean resumed;
     private boolean pooling;
+    private boolean fresh = true;
+    private FragmentAnimator fragmentAnimator;
 
     public Fragment() {
-        annotation = getClass().getAnnotation(XmlFragment.class);
-        clear();
+        annotation = getClass().getAnnotation(FragmentAnnotation.class);
+        if (annotation != null) {
+            pooling = annotation.pooling();
+            Class animatorClass = annotation.animator();
+            if (animatorClass != Void.class) {
+                try {
+                    fragmentAnimator = (FragmentAnimator) animatorClass.getConstructor().newInstance();
+                } catch (Exception e) {
+                }
+            }
+        }
     }
 
-    private void clear() {
-        fresh = true;
-        handler = new Handler();
+    void clear() {
+        handler = null;
         childFragmentManager = null;
-        id = idSequence++;
+        id = -1;
+        activity = null;
+        fragmentManager = null;
+        fresh = true;
     }
 
     void init(FragmentManager fragmentManager) {
+        handler = new Handler();
+        id = idSequence++;
         this.activity = fragmentManager.getActivity();
         this.fragmentManager = fragmentManager;
         childFragmentManager = new FragmentManager(fragmentManager);
-        if (view == null)
-            view = onCreateView();
+        if (view == null) {
+            view = new FragmentRootView(activity);
+            view.addView(onCreateView());
+        }
+        childFragmentManager.setRoot(view);
         onCreate();
     }
 
@@ -87,59 +106,58 @@ public abstract class Fragment {
         return "";
     }
 
-    public void start() {
+    public void start(int detail) {
         if (started)
             return;
-        if (fresh)
-            onFreshStart();
-        onStart();
+        onStart(detail | (fresh ? ADD : 0));
         started = true;
         fresh = false;
     }
 
-    protected void onFreshStart() {
+    protected void onStart(int detail) {
     }
 
-    protected void onStart() {
-    }
-
-    public void resume() {
-        if (running)
+    public void resume(int detail) {
+        if (resumed)
             return;
-        onResume();
-        running = true;
+        onResume(detail);
+        resumed = true;
     }
 
-    protected void onResume() {
+    protected void onResume(int detail) {
     }
 
 
-    public void pause() {
-        if (!running)
+    public void pause(int detail) {
+        if (!resumed)
             return;
-        running = false;
-        onPause();
+        resumed = false;
+        onPause(detail);
     }
 
-    protected void onPause() {
+    protected void onPause(int detail) {
     }
 
-    public void stop() {
+    public void stop(int detail) {
         if (!started)
             return;
         started = false;
-        onStop();
+        onStop(detail);
     }
 
-    protected void onStop() {
+    protected void onStop(int detail) {
     }
 
-    public boolean isRunning() {
-        return running;
+    public boolean isStarted() {
+        return started;
+    }
+
+    public boolean isResumed() {
+        return resumed;
     }
 
     @NonNull
-    public View getView() {
+    public FragmentRootView getView() {
         return view;
     }
 
@@ -170,20 +188,18 @@ public abstract class Fragment {
     public List<View> findViewsById(int id) {
         ArrayList<View> result = new ArrayList<>();
         ArrayList<ViewGroup> groups = new ArrayList<>();
-        groups.add((ViewGroup) view);
+        groups.add(view);
 
         while (!groups.isEmpty()) {
             ViewGroup group = groups.remove(0);
 
             for (int i = 0; i < group.getChildCount(); ++i) {
                 View child = group.getChildAt(i);
-                if (child.getId() == id) {
+                if (child.getId() == id)
                     result.add(child);
-                }
 
-                if (child instanceof ViewGroup) {
+                if (child instanceof ViewGroup)
                     groups.add((ViewGroup) child);
-                }
             }
         }
 
@@ -197,77 +213,46 @@ public abstract class Fragment {
     public List<View> findViewsWithTag(Object tag) {
         ArrayList<View> result = new ArrayList<>();
         ArrayList<ViewGroup> groups = new ArrayList<>();
-        groups.add((ViewGroup) view);
+        groups.add(view);
 
         while (!groups.isEmpty()) {
             ViewGroup group = groups.remove(0);
 
             for (int i = 0; i < group.getChildCount(); ++i) {
                 View child = group.getChildAt(i);
-                if (tag.equals(child.getTag())) {
+                if (tag.equals(child.getTag()))
                     result.add(child);
-                }
 
-                if (child instanceof ViewGroup) {
+                if (child instanceof ViewGroup)
                     groups.add((ViewGroup) child);
-                }
             }
         }
 
         return result;
     }
 
+    public Animator animateAdd() {
+        if (fragmentAnimator == null)
+            return null;
+        return fragmentAnimator.animateAdd(this);
+    }
+
+    public Animator animateStop() {
+        if (fragmentAnimator == null)
+            return null;
+        return fragmentAnimator.animateStop(this);
+    }
+
+    public Animator animateRemove() {
+        if (fragmentAnimator == null)
+            return null;
+        return fragmentAnimator.animateRemove(this);
+    }
+
     public Animator animateStart() {
-        final View view = getView();
-        ValueAnimator animator = ValueAnimator.ofFloat(1.1f, 1);
-        animator.setDuration(200);
-        animator.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
-            @Override
-            public void onAnimationUpdate(ValueAnimator valueAnimator) {
-                float fraction = valueAnimator.getAnimatedFraction();
-                float value = (float) valueAnimator.getAnimatedValue();
-                ViewHelper.setAlpha(view, fraction);
-                ViewHelper.setScaleX(view, value);
-                ViewHelper.setScaleY(view, value);
-            }
-        });
-        if (view instanceof FragmentRootView)
-            animator.addListener(new LockListenerAdapter((FragmentRootView) view));
-        animator.start();
-        return animator;
-    }
-
-    public Animator animatePause() {
-        ValueAnimator animator = ValueAnimator.ofFloat(1.1f, 1);
-        animator.setDuration(200);
-        if (view instanceof FragmentRootView)
-            animator.addListener(new LockListenerAdapter((FragmentRootView) view));
-        animator.start();
-        return animator;
-    }
-
-    public ValueAnimator animateFinish() {
-        final View view = getView();
-        ValueAnimator animator = ValueAnimator.ofFloat(1, 1.1f);
-        animator.setDuration(200);
-        animator.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
-            @Override
-            public void onAnimationUpdate(ValueAnimator valueAnimator) {
-                float fraction = 1 - valueAnimator.getAnimatedFraction();
-                float value = (float) valueAnimator.getAnimatedValue();
-                ViewHelper.setAlpha(view, fraction);
-                ViewHelper.setScaleX(view, value);
-                ViewHelper.setScaleY(view, value);
-            }
-        });
-        if (view instanceof FragmentRootView)
-            animator.addListener(new LockListenerAdapter((FragmentRootView) view));
-        animator.start();
-        return animator;
-    }
-
-    public Animator animateResume() {
-        return null;
+        if (fragmentAnimator == null)
+            return null;
+        return fragmentAnimator.animateStart(this);
     }
 
     public void onSaveState(Bundle bundle) {
@@ -318,70 +303,70 @@ public abstract class Fragment {
         return activity.getString(resId, args);
     }
 
-    public <T extends Fragment> FragmentTransaction add(T fragment, int id, FragmentTransaction.Mode mode) {
+    public <T extends Fragment> FragmentTransaction add(T fragment, int id, TransactionMode mode) {
         fragment.setParent(this);
         return childFragmentManager.add(fragment, id, mode);
     }
 
-    public <T extends Fragment> FragmentTransaction add(T fragment, String tag, FragmentTransaction.Mode mode) {
+    public <T extends Fragment> FragmentTransaction add(T fragment, String tag, TransactionMode mode) {
         fragment.setParent(this);
         return childFragmentManager.add(fragment, tag, mode);
     }
 
-    public <T extends Fragment> FragmentTransaction add(Class<T> fragmentClass, int id, FragmentTransaction.Mode mode) {
+    public <T extends Fragment> FragmentTransaction add(Class<T> fragmentClass, int id, TransactionMode mode) {
         T fragment = childFragmentManager.instantiate(fragmentClass);
         fragment.setParent(this);
         return childFragmentManager.add(fragment, id, mode);
     }
 
-    public <T extends Fragment> FragmentTransaction add(Class<T> fragmentClass, String tag, FragmentTransaction.Mode mode) {
+    public <T extends Fragment> FragmentTransaction add(Class<T> fragmentClass, String tag, TransactionMode mode) {
         T fragment = childFragmentManager.instantiate(fragmentClass);
         fragment.setParent(this);
         return childFragmentManager.add(fragment, tag, mode);
     }
 
-    public <T extends Fragment> FragmentTransaction replace(T fragment, int id, FragmentTransaction.Mode mode) {
+    public <T extends Fragment> FragmentTransaction replace(T fragment, int id, TransactionMode mode) {
         fragment.setParent(this);
         return childFragmentManager.replace(fragment, id, mode);
     }
 
-    public <T extends Fragment> FragmentTransaction replace(T fragment, String tag, FragmentTransaction.Mode mode) {
+    public <T extends Fragment> FragmentTransaction replace(T fragment, String tag, TransactionMode mode) {
         fragment.setParent(this);
         return childFragmentManager.replace(fragment, tag, mode);
     }
 
-    public <T extends Fragment, T2 extends Fragment> FragmentTransaction replace(T2 removeFragment, T addFragment, FragmentTransaction.Mode mode) {
+    public <T extends Fragment, T2 extends Fragment> FragmentTransaction replace(T2 removeFragment, T addFragment, TransactionMode mode) {
         addFragment.setParent(this);
         return childFragmentManager.replace(removeFragment, addFragment, mode);
     }
 
-    public <T extends Fragment> FragmentTransaction replace(Class<T> fragmentClass, int id, FragmentTransaction.Mode mode) {
+    public <T extends Fragment> FragmentTransaction replace(Class<T> fragmentClass, int id, TransactionMode mode) {
         T fragment = childFragmentManager.instantiate(fragmentClass);
         fragment.setParent(this);
         return childFragmentManager.replace(fragment, id, mode);
     }
 
-    public <T extends Fragment, T2 extends Fragment> FragmentTransaction replace(T2 removeFragment, Class<T> fragmentClass, FragmentTransaction.Mode mode) {
+    public <T extends Fragment, T2 extends Fragment> FragmentTransaction replace(T2 removeFragment, Class<T> fragmentClass, TransactionMode mode) {
         T fragment = childFragmentManager.instantiate(fragmentClass);
         fragment.setParent(this);
         return childFragmentManager.replace(removeFragment, fragment, mode);
     }
 
-    public <T extends Fragment> FragmentTransaction replace(Class<T> fragmentClass, String tag, FragmentTransaction.Mode mode) {
+    public <T extends Fragment> FragmentTransaction replace(Class<T> fragmentClass, String tag, TransactionMode mode) {
         T fragment = childFragmentManager.instantiate(fragmentClass);
         fragment.setParent(this);
         return childFragmentManager.replace(fragment, tag, mode);
     }
 
-    public FragmentTransaction remove(int id, FragmentTransaction.Mode mode) {
+    public FragmentTransaction remove(int id, TransactionMode mode) {
         return childFragmentManager.remove(id, mode);
     }
 
-    public FragmentTransaction remove(String tag, FragmentTransaction.Mode mode) {
+    public FragmentTransaction remove(String tag, TransactionMode mode) {
         return childFragmentManager.remove(tag, mode);
     }
 
-    public <T extends Fragment> FragmentTransaction remove(T fragment, FragmentTransaction.Mode mode) {
+    public <T extends Fragment> FragmentTransaction remove(T fragment, TransactionMode mode) {
         return childFragmentManager.remove(fragment, mode);
     }
 
@@ -427,10 +412,6 @@ public abstract class Fragment {
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
     }
 
-    public boolean isFresh() {
-        return fresh;
-    }
-
     public void setPoolingEnabled(boolean pooling) {
         this.pooling = pooling;
     }
@@ -439,7 +420,15 @@ public abstract class Fragment {
         return pooling;
     }
 
-    protected boolean onKeyEvent(KeyEvent event){
+    protected boolean onKeyEvent(KeyEvent event) {
         return false;
+    }
+
+    public FragmentAnimator getAnimator() {
+        return fragmentAnimator;
+    }
+
+    public void setAnimator(FragmentAnimator fragmentAnimator) {
+        this.fragmentAnimator = fragmentAnimator;
     }
 }

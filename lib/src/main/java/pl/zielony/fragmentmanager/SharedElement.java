@@ -1,6 +1,7 @@
 package pl.zielony.fragmentmanager;
 
 import android.graphics.Rect;
+import android.os.Bundle;
 import android.view.View;
 import android.view.ViewTreeObserver;
 import android.view.animation.DecelerateInterpolator;
@@ -16,8 +17,12 @@ import java.util.List;
  * Created by Marcin on 2016-06-26.
  */
 public class SharedElement {
-    private final int idFrom, idTo;
-    private int id;
+    private static final String FROM = "from";
+    private static final String TO = "to";
+    private static final String VIEW_ID = "viewId";
+
+    private int idFrom, idTo;
+    private int viewId;
     private Rect rectFrom = new Rect(), rectTo = new Rect();
     private ValueAnimator.AnimatorUpdateListener listener;
     private long duration = 200;
@@ -26,13 +31,16 @@ public class SharedElement {
     public SharedElement(View view, Fragment from, Fragment to) {
         this.idFrom = from.getId();
         this.idTo = to.getId();
-        this.id = view.getId();
+        this.viewId = view.getId();
     }
 
     public SharedElement(int id, Fragment from, Fragment to) {
         this.idFrom = from.getId();
         this.idTo = to.getId();
-        this.id = id;
+        this.viewId = id;
+    }
+
+    public SharedElement() {
     }
 
     void apply(List<Fragment> fragments, final boolean reverse) {
@@ -50,9 +58,9 @@ public class SharedElement {
         final int[] locationToView = new int[2];
         fragmentFrom.getView().getLocationOnScreen(locationFromFragment);
         fragmentTo.getView().getLocationOnScreen(locationToFragment);
-        final View viewFrom = fragmentFrom.getView().findViewById(id);
-        final View viewTo = fragmentTo.getView().findViewById(id);
-        viewFrom.getViewTreeObserver().addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
+        final View viewFrom = fragmentFrom.getView().findViewById(viewId);
+        final View viewTo = fragmentTo.getView().findViewById(viewId);
+        viewTo.getViewTreeObserver().addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
             @Override
             public void onGlobalLayout() {
                 viewFrom.getLocationOnScreen(locationFromView);
@@ -62,7 +70,7 @@ public class SharedElement {
                 rectTo.set(0, 0, viewTo.getWidth(), viewTo.getHeight());
                 rectTo.offset(locationToView[0] - locationToFragment[0], locationToView[1] - locationToFragment[1]);
                 execute(viewFrom, viewTo, reverse);
-                viewFrom.getViewTreeObserver().removeGlobalOnLayoutListener(this);
+                viewTo.getViewTreeObserver().removeGlobalOnLayoutListener(this);
             }
         });
     }
@@ -115,5 +123,17 @@ public class SharedElement {
 
     public void setInterpolator(Interpolator interpolator) {
         this.interpolator = interpolator;
+    }
+
+    public void save(Bundle sharedElementBundle) {
+        sharedElementBundle.putInt(FROM, idFrom);
+        sharedElementBundle.putInt(TO, idTo);
+        sharedElementBundle.putInt(VIEW_ID, viewId);
+    }
+
+    public void restore(Bundle sharedElementBundle) {
+        idFrom = sharedElementBundle.getInt(FROM);
+        idTo = sharedElementBundle.getInt(TO);
+        viewId = sharedElementBundle.getInt(VIEW_ID);
     }
 }

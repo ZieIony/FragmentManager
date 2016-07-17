@@ -7,16 +7,17 @@ import android.widget.EditText;
 
 import carbon.widget.TextView;
 import pl.zielony.fragmentmanager.Fragment;
-import pl.zielony.fragmentmanager.FragmentManager;
+import pl.zielony.fragmentmanager.FragmentAnnotation;
 
 /**
  * Created by Marcin on 2015-12-08.
  */
+@FragmentAnnotation(layout = R.layout.fragment1)
 public class Fragment1 extends Fragment {
 
     @Override
-    protected View onCreateView() {
-        View view = View.inflate(getContext(), R.layout.fragment1, null);
+    protected void onCreate() {
+        View view = getView();
         final EditText et = (EditText) view.findViewById(R.id.et);
         final TextView copy = (TextView) view.findViewById(R.id.copy);
         final SparseArray<Parcelable> container = new SparseArray<Parcelable>();
@@ -39,6 +40,5 @@ public class Fragment1 extends Fragment {
                 getView().restoreHierarchyState(container);
             }
         });
-        return view;
     }
 }

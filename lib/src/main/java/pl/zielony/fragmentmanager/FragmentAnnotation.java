@@ -12,8 +12,12 @@ import java.lang.annotation.Target;
 @Inherited
 @Target({ElementType.TYPE})
 @Retention(RetentionPolicy.RUNTIME)
-public @interface XmlFragment {
+public @interface FragmentAnnotation {
     int layout() default 0;
 
     int title() default 0;
+
+    boolean pooling() default true;
+
+    Class animator() default DefaultFragmentAnimator.class;
 }

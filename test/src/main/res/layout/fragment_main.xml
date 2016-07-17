@@ -12,7 +12,20 @@
             android:id="@+id/toolbar"
             android:layout_width="match_parent"
             android:layout_height="@dimen/carbon_toolbarHeight"
-            android:text="Main fragment" />
+            android:text="Main fragment">
+
+            <carbon.widget.Button
+                android:id="@+id/button1"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="F1" />
+
+            <carbon.widget.Button
+                android:id="@+id/button2"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="F2" />
+        </carbon.widget.Toolbar>
 
         <FrameLayout
             android:layout_width="match_parent"
@@ -26,18 +39,6 @@
         android:layout_gravity="start"
         android:background="#ffffffff"
         android:orientation="vertical">
-
-        <carbon.widget.Button
-            android:id="@+id/button1"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Fragment 1" />
-
-        <carbon.widget.Button
-            android:id="@+id/button2"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Fragment 2" />
 
         <carbon.widget.Button
             android:id="@+id/popbackstack"

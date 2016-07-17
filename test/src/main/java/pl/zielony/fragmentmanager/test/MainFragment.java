@@ -4,28 +4,27 @@ import android.view.View;
 
 import carbon.widget.Toolbar;
 import pl.zielony.fragmentmanager.Fragment;
-import pl.zielony.fragmentmanager.FragmentManager;
-import pl.zielony.fragmentmanager.FragmentTransaction;
-import pl.zielony.fragmentmanager.XmlFragment;
+import pl.zielony.fragmentmanager.TransactionMode;
+import pl.zielony.fragmentmanager.FragmentAnnotation;
 
 /**
  * Created by Marcin on 2015-12-08.
  */
-@XmlFragment(layout = R.layout.fragment_main)
+@FragmentAnnotation(layout = R.layout.fragment_main)
 public class MainFragment extends Fragment {
     @Override
     protected void onCreate() {
         findViewById(R.id.button1).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                getFragmentManager().replace(Fragment1.class, "container", FragmentTransaction.Mode.Push).execute();
+                getChildFragmentManager().replace(Fragment1.class, "container", TransactionMode.Push).execute();
             }
         });
 
         findViewById(R.id.button2).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                getFragmentManager().replace(Fragment2.class, "container", FragmentTransaction.Mode.Push).execute();
+                getChildFragmentManager().replace(Fragment2.class, "container", TransactionMode.Push).execute();
             }
         });
 
@@ -34,13 +33,18 @@ public class MainFragment extends Fragment {
             @Override
             public void onClick(View view) {
                 if (getFragmentManager().hasUp()) {
-                    getFragmentManager().up();
+                    getFragmentManager().upTraverse();
                 } else {
                     getActivity().onBackPressed();
                 }
             }
         });
+    }
 
-        getFragmentManager().add(Fragment1.class, "container", FragmentTransaction.Mode.Join).execute();
+    @Override
+    protected void onStart(int detail) {
+        super.onStart(detail);
+        if ((detail & Fragment.ADD) != 0)
+            getChildFragmentManager().add(Fragment1.class, "container", TransactionMode.Join).execute();
     }
 }

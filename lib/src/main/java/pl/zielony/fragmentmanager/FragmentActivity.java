@@ -10,7 +10,7 @@ import android.view.KeyEvent;
  * Created by Marcin on 2016-05-11.
  */
 public class FragmentActivity extends AppCompatActivity {
-    public FragmentManager fragmentManager;
+    private FragmentManager fragmentManager;
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
@@ -20,13 +20,13 @@ public class FragmentActivity extends AppCompatActivity {
 
     @Override
     public void onBackPressed() {
-        if (fragmentManager.back())
+        if (fragmentManager.backTraverse())
             return;
         super.onBackPressed();
     }
 
     public void onUpPressed() {
-        fragmentManager.up();
+        fragmentManager.upTraverse();
     }
 
     @Override
