@@ -2,13 +2,15 @@ package pl.zielony.fragmentmanager;
 
 import android.graphics.Rect;
 import android.os.Bundle;
+import android.util.TypedValue;
 import android.view.View;
-import android.view.ViewTreeObserver;
 import android.view.animation.DecelerateInterpolator;
 import android.view.animation.Interpolator;
+import android.widget.TextView;
 
 import com.nineoldandroids.animation.Animator;
 import com.nineoldandroids.animation.AnimatorListenerAdapter;
+import com.nineoldandroids.animation.ArgbEvaluator;
 import com.nineoldandroids.animation.ValueAnimator;
 
 import java.util.List;
@@ -16,17 +18,70 @@ import java.util.List;
 /**
  * Created by Marcin on 2016-06-26.
  */
-public class SharedElement {
+public class SharedElement implements ValueAnimator.AnimatorUpdateListener {
     private static final String FROM = "from";
     private static final String TO = "to";
     private static final String VIEW_ID = "viewId";
 
     private int idFrom, idTo;
     private int viewId;
-    private Rect rectFrom = new Rect(), rectTo = new Rect();
-    private ValueAnimator.AnimatorUpdateListener listener;
-    private long duration = 200;
+    private long duration = DefaultFragmentAnimator.DEFAULT_ANIMATION_DURATION;
     private Interpolator interpolator;
+
+    private View view;
+    private FragmentRootView container;
+    private KeyFrame frameFrom;
+    private KeyFrame frameTo;
+
+    static class KeyFrame {
+        Rect rect = new Rect();
+    }
+
+    @Override
+    public void onAnimationUpdate(ValueAnimator animation) {
+        float value = (Float) animation.getAnimatedValue();
+        Rect rectFrom = frameFrom.rect;
+        Rect rectTo = frameTo.rect;
+        view.layout(lerp(rectFrom.left, rectTo.left, value),
+                lerp(rectFrom.top, rectTo.top, value),
+                lerp(rectFrom.right, rectTo.right, value),
+                lerp(rectFrom.bottom, rectTo.bottom, value));
+        container.invalidate();
+    }
+
+    private static class TextViewKeyFrame extends KeyFrame {
+        float textSize = 0;
+        int textColor = 0;
+    }
+
+    private static class TextViewAnimatorListener implements ValueAnimator.AnimatorUpdateListener {
+        private TextView view;
+        private View container;
+        private final TextViewKeyFrame frameFrom;
+        private final TextViewKeyFrame frameTo;
+        ArgbEvaluator evaluator = new ArgbEvaluator();
+
+        TextViewAnimatorListener(TextView view, View container, TextViewKeyFrame frameFrom, TextViewKeyFrame frameTo) {
+            this.view = view;
+            this.container = container;
+            this.frameFrom = frameFrom;
+            this.frameTo = frameTo;
+        }
+
+        @Override
+        public void onAnimationUpdate(ValueAnimator animation) {
+            float value = (Float) animation.getAnimatedValue();
+            Rect rectFrom = frameFrom.rect;
+            Rect rectTo = frameTo.rect;
+            view.layout(lerp(rectFrom.left, rectTo.left, value),
+                    lerp(rectFrom.top, rectTo.top, value),
+                    lerp(rectFrom.right, rectTo.right, value),
+                    lerp(rectFrom.bottom, rectTo.bottom, value));
+            view.setTextColor((Integer) evaluator.evaluate(value, frameFrom.textColor, frameTo.textColor));
+            view.setTextSize(TypedValue.COMPLEX_UNIT_PX, lerp(frameFrom.textSize, frameTo.textSize, value));
+            container.invalidate();
+        }
+    }
 
     public SharedElement(View view, Fragment from, Fragment to) {
         this.idFrom = from.getId();
@@ -43,7 +98,8 @@ public class SharedElement {
     public SharedElement() {
     }
 
-    void apply(List<Fragment> fragments, final boolean reverse) {
+    ValueAnimator start(List<Fragment> fragments, final boolean reverse, final FragmentRootView container) {
+        this.container = container;
         Fragment fragmentFrom = null, fragmentTo = null;
         for (Fragment f : fragments) {
             if (f.getId() == idFrom)
@@ -52,69 +108,90 @@ public class SharedElement {
                 fragmentTo = f;
         }
 
-        final int[] locationFromFragment = new int[2];
-        final int[] locationToFragment = new int[2];
-        final int[] locationFromView = new int[2];
-        final int[] locationToView = new int[2];
-        fragmentFrom.getView().getLocationOnScreen(locationFromFragment);
-        fragmentTo.getView().getLocationOnScreen(locationToFragment);
-        final View viewFrom = fragmentFrom.getView().findViewById(viewId);
-        final View viewTo = fragmentTo.getView().findViewById(viewId);
-        viewTo.getViewTreeObserver().addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
-            @Override
-            public void onGlobalLayout() {
-                viewFrom.getLocationOnScreen(locationFromView);
-                rectFrom.set(0, 0, viewFrom.getWidth(), viewFrom.getHeight());
-                rectFrom.offset(locationFromView[0] - locationFromFragment[0], locationFromView[1] - locationFromFragment[1]);
-                viewTo.getLocationOnScreen(locationToView);
-                rectTo.set(0, 0, viewTo.getWidth(), viewTo.getHeight());
-                rectTo.offset(locationToView[0] - locationToFragment[0], locationToView[1] - locationToFragment[1]);
-                execute(viewFrom, viewTo, reverse);
-                viewTo.getViewTreeObserver().removeGlobalOnLayoutListener(this);
-            }
-        });
+        if (fragmentFrom == null || fragmentTo == null)
+            throw new IllegalStateException("SharedElement transition needs two fragments to animate between");
+
+        if (reverse) {
+            return start(fragmentTo, fragmentFrom);
+        } else {
+            return start(fragmentFrom, fragmentTo);
+        }
     }
 
-    private void execute(final View viewFrom, final View viewTo, final boolean reverse) {
-        ValueAnimator animator = ValueAnimator.ofFloat(reverse ? 1 : 0, reverse ? 0 : 1);
+    private ValueAnimator start(Fragment fragmentFrom, Fragment fragmentTo) {
+        final FragmentRootView rootFrom = fragmentFrom.getRootView();
+        final FragmentRootView rootTo = fragmentTo.getRootView();
+
+        container = rootTo;
+
+        final int[] containerLocation = new int[2];
+        container.getLocationOnScreen(containerLocation);
+
+        final View viewFrom = rootFrom.findViewById(viewId);
+        frameFrom = setupFrame(viewFrom, containerLocation);
+
+        final View viewTo = rootTo.findViewById(viewId);
+        frameTo = setupFrame(viewTo, containerLocation);
+
+        ValueAnimator animator = start(viewFrom, viewTo);
+        animator.addListener(new AnimatorListenerAdapter() {
+            @Override
+            public void onAnimationStart(Animator animation) {
+                rootFrom.setPreventLayout(true);
+                rootTo.setPreventLayout(true);
+                viewFrom.setVisibility(View.INVISIBLE);
+                viewTo.setVisibility(View.INVISIBLE);
+                container.addSharedView(viewTo);
+            }
+
+            @Override
+            public void onAnimationEnd(Animator animation) {
+                rootFrom.setPreventLayout(false);
+                rootTo.setPreventLayout(false);
+                viewFrom.setVisibility(View.VISIBLE);
+                viewTo.setVisibility(View.VISIBLE);
+                container.removeSharedView(viewTo);
+                rootFrom.requestLayout();
+                rootTo.requestLayout();
+            }
+        });
+
+        return animator;
+    }
+
+    private KeyFrame setupFrame(View view, int[] containerLocation) {
+        KeyFrame frame;// = new KeyFrame();
+        if (view instanceof TextView) {
+            frame = new TextViewKeyFrame();
+            ((TextViewKeyFrame) frame).textColor = ((TextView) view).getCurrentTextColor();
+            ((TextViewKeyFrame) frame).textSize = ((TextView) view).getTextSize();
+        } else {
+            frame = new KeyFrame();
+        }
+        final int[] viewLocation = new int[2];
+        view.getLocationOnScreen(viewLocation);
+        frame.rect.set(0, 0, view.getWidth(), view.getHeight());
+        frame.rect.offset(viewLocation[0] - containerLocation[0], viewLocation[1] - containerLocation[1]);
+        return frame;
+    }
+
+    private ValueAnimator start(final View viewFrom, final View viewTo) {
+        this.view = viewTo;
+        ValueAnimator animator = ValueAnimator.ofFloat(0, 1);
         animator.setDuration(duration);
         if (interpolator == null)
             interpolator = new DecelerateInterpolator();
         animator.setInterpolator(interpolator);
-        if (listener == null) {
-            listener = new ValueAnimator.AnimatorUpdateListener() {
-                @Override
-                public void onAnimationUpdate(ValueAnimator animation) {
-                    float value = (Float) animation.getAnimatedValue();
-                    viewTo.layout(lerp(rectFrom.left, rectTo.left, value),
-                            lerp(rectFrom.top, rectTo.top, value),
-                            lerp(rectFrom.right, rectTo.right, value),
-                            lerp(rectFrom.bottom, rectTo.bottom, value));
-                }
-            };
+        if (viewFrom instanceof TextView) {
+            animator.addUpdateListener(new TextViewAnimatorListener((TextView) view, container, (TextViewKeyFrame) frameFrom, (TextViewKeyFrame) frameTo));
+        } else {
+            animator.addUpdateListener(this);
         }
-        animator.addListener(new AnimatorListenerAdapter() {
-            @Override
-            public void onAnimationEnd(Animator animation) {
-                if (reverse)
-                    viewFrom.setVisibility(View.VISIBLE);
-            }
-
-            @Override
-            public void onAnimationStart(Animator animation) {
-                viewFrom.setVisibility(View.INVISIBLE);
-            }
-        });
-        animator.addUpdateListener(listener);
-        animator.start();
+        return animator;
     }
 
-    private int lerp(float a, float b, float t) {
+    protected static int lerp(float a, float b, float t) {
         return (int) (b * t + a * (1 - t));
-    }
-
-    public void setAnimationListener(ValueAnimator.AnimatorUpdateListener listener) {
-        this.listener = listener;
     }
 
     public void setDuration(long duration) {

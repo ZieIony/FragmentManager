@@ -3,26 +3,31 @@ package pl.zielony.fragmentmanager.test;
 import android.view.View;
 
 import com.nineoldandroids.animation.Animator;
+import com.nineoldandroids.animation.AnimatorListenerAdapter;
 import com.nineoldandroids.animation.ValueAnimator;
 import com.nineoldandroids.view.ViewHelper;
 
 import pl.zielony.fragmentmanager.Fragment;
-import pl.zielony.fragmentmanager.FragmentRootView;
-import pl.zielony.fragmentmanager.LockListenerAdapter;
 import pl.zielony.fragmentmanager.FragmentAnnotation;
 
 /**
  * Created by Marcin on 2015-12-08.
  */
-@FragmentAnnotation(layout = R.layout.fragment3)
+@FragmentAnnotation(layout = R.layout.fragment3,pooling = false)
 public class Fragment3 extends Fragment {
 
     @Override
     public Animator animateAdd() {
         final View view = getView().findViewById(R.id.below);
-        ViewHelper.setAlpha(view, 0);
         ValueAnimator animator = ValueAnimator.ofFloat(1.1f, 1);
         animator.setDuration(200);
+        animator.addListener(new AnimatorListenerAdapter() {
+            @Override
+            public void onAnimationStart(Animator animation) {
+                ViewHelper.setAlpha(view, 0);
+                ViewHelper.setTranslationY(view, view.getHeight() / 2);
+            }
+        });
         animator.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
             @Override
             public void onAnimationUpdate(ValueAnimator valueAnimator) {
@@ -31,9 +36,6 @@ public class Fragment3 extends Fragment {
                 ViewHelper.setTranslationY(view, (1 - fraction) * view.getHeight() / 2);
             }
         });
-        if (view instanceof FragmentRootView)
-            animator.addListener(new LockListenerAdapter((FragmentRootView) view));
-        animator.start();
         return animator;
     }
 
@@ -42,6 +44,13 @@ public class Fragment3 extends Fragment {
         final View view = getView().findViewById(R.id.below);
         ValueAnimator animator = ValueAnimator.ofFloat(1, 1.1f);
         animator.setDuration(200);
+        animator.addListener(new AnimatorListenerAdapter() {
+            @Override
+            public void onAnimationStart(Animator animation) {
+                ViewHelper.setAlpha(view, 1);
+                ViewHelper.setTranslationY(view, 0);
+            }
+        });
         animator.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
             @Override
             public void onAnimationUpdate(ValueAnimator valueAnimator) {
@@ -50,9 +59,6 @@ public class Fragment3 extends Fragment {
                 ViewHelper.setTranslationY(view, (1 - fraction) * view.getHeight() / 2);
             }
         });
-        if (view instanceof FragmentRootView)
-            animator.addListener(new LockListenerAdapter((FragmentRootView) view));
-        animator.start();
         return animator;
     }
 }

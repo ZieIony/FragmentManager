@@ -7,6 +7,7 @@ import com.nineoldandroids.animation.AnimatorSet;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Created by Marcin on 2015-12-31.
@@ -16,6 +17,7 @@ public class FragmentTransaction {
     private static final String STATES = "states";
     private static final String MODE = "mode";
     private static final String SHARED_ELEMENTS = "sharedElements";
+    private static final String SHARED_ELEMENT_CLASS = "sharedElementClass";
 
     List<StateChange> changes = new ArrayList<>();
     private List<SharedElement> sharedElements = new ArrayList<>();
@@ -67,8 +69,8 @@ public class FragmentTransaction {
 
     public void execute() {
         List<Animator> animators = new ArrayList<>();
+        List<Fragment> fragments = new ArrayList<>(manager.getFragments());
 
-        List<Fragment> prevFragments = new ArrayList<>(manager.getFragments());
         manager.backstack.add(this);
         for (StateChange stateChange : changes) {
             if (stateChange.change == StateChange.Change.Add) {
@@ -81,17 +83,16 @@ public class FragmentTransaction {
                     animators.add(animator);
             }
         }
-        prevFragments.addAll(manager.getFragments());
-        for (SharedElement e : sharedElements)
-            e.apply(prevFragments, false);
 
-        new AnimatorSet().playTogether(animators);
+        fragments.addAll(manager.getFragments());
+
+        runAnimations(animators, fragments, false);
     }
 
     public void undo() {
-        List<Animator> animators = new ArrayList<>();
+        final List<Animator> animators = new ArrayList<>();
+        List<Fragment> fragments = new ArrayList<>(manager.getFragments());
 
-        List<Fragment> prevFragments = new ArrayList<>(manager.getFragments());
         for (int i = changes.size() - 1; i >= 0; i--) {
             StateChange stateChange = changes.get(i);
             if (stateChange.change == StateChange.Change.Add) {
@@ -104,11 +105,62 @@ public class FragmentTransaction {
                     animators.add(animator);
             }
         }
-        prevFragments.addAll(manager.getFragments());
-        for (SharedElement e : sharedElements)
-            e.apply(prevFragments, true);
 
-        new AnimatorSet().playTogether(animators);
+        fragments.addAll(manager.getFragments());
+
+        runAnimations(animators, fragments, true);
+    }
+
+    private void runAnimations(final List<Animator> animators, final List<Fragment> fragments, final boolean reverse) {
+        final AtomicInteger notAttachedFragments = new AtomicInteger();
+
+        new Thread() {
+            public void run() {
+                try {
+                    synchronized (FragmentTransaction.this) {
+                        if (notAttachedFragments.get() > 0)
+                            FragmentTransaction.this.wait();
+
+                        fragments.get(0).getHandler().post(new Runnable() {
+                            @Override
+                            public void run() {
+                                for (SharedElement e : sharedElements)
+                                    animators.add(e.start(fragments, reverse, manager.getRootView()));
+                                AnimatorSet set = new AnimatorSet();
+                                set.playTogether(animators);
+                                set.start();
+                            }
+                        });
+                    }
+                } catch (InterruptedException e) {
+                }
+            }
+        }.start();
+
+        notAttachedFragments.set(manager.getFragments().size());
+
+        for (final Fragment f : manager.getFragments()) {
+            if (f.isAttached()) {
+                f.setOnStateChangeListener(null);
+                synchronized (FragmentTransaction.this) {
+                    if (notAttachedFragments.decrementAndGet() == 0)
+                        FragmentTransaction.this.notify();
+                }
+            } else {
+                f.setOnStateChangeListener(new OnStateChangeListener() {
+                    @Override
+                    public void onStateChange(int state) {
+                        if (f.isAttached()) {
+                            f.setOnStateChangeListener(null);
+                            synchronized (FragmentTransaction.this) {
+                                if (notAttachedFragments.decrementAndGet() == 0)
+                                    FragmentTransaction.this.notify();
+                            }
+                        }
+                    }
+                });
+            }
+        }
     }
 
     void save(Bundle bundle, List<FragmentState> allStates) {
@@ -123,9 +175,10 @@ public class FragmentTransaction {
         }
 
         ArrayList<Bundle> sharedElementBundles = new ArrayList<>();
-        for (SharedElement transaction : sharedElements) {
+        for (SharedElement sharedElement : sharedElements) {
             Bundle sharedElementBundle = new Bundle();
-            transaction.save(sharedElementBundle);
+            sharedElementBundle.putString(SHARED_ELEMENT_CLASS, sharedElement.getClass().getName());
+            sharedElement.save(sharedElementBundle);
             sharedElementBundles.add(sharedElementBundle);
         }
 
@@ -148,9 +201,19 @@ public class FragmentTransaction {
             this.changes.add(new StateChange(allStates.get(states[i]), StateChange.Change.values()[changes[i]]));
 
         for (Bundle sharedElementBundle : sharedElementBundles) {
-            SharedElement sharedElement = new SharedElement();
-            sharedElement.restore(sharedElementBundle);
-            sharedElements.add(sharedElement);
+            String className = sharedElementBundle.getString(SHARED_ELEMENT_CLASS);
+            SharedElement sharedElement = null;
+            try {
+                sharedElement = (SharedElement) Class.forName(className).newInstance();
+                sharedElement.restore(sharedElementBundle);
+                sharedElements.add(sharedElement);
+            } catch (InstantiationException e) {
+                e.printStackTrace();
+            } catch (IllegalAccessException e) {
+                e.printStackTrace();
+            } catch (ClassNotFoundException e) {
+                e.printStackTrace();
+            }
         }
     }
 }

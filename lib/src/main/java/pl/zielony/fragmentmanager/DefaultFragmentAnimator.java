@@ -1,6 +1,7 @@
 package pl.zielony.fragmentmanager;
 
 import android.view.View;
+import android.view.animation.DecelerateInterpolator;
 
 import com.nineoldandroids.animation.Animator;
 import com.nineoldandroids.animation.ValueAnimator;
@@ -10,12 +11,14 @@ import com.nineoldandroids.view.ViewHelper;
  * Created by Marcin on 2016-07-07.
  */
 
-public class DefaultFragmentAnimator extends FragmentAnimator {
+public class DefaultFragmentAnimator implements FragmentAnimator {
+    public static final int DEFAULT_ANIMATION_DURATION = 200;
 
     public Animator animateAdd(Fragment fragment) {
         final View view = fragment.getView();
         ValueAnimator animator = ValueAnimator.ofFloat(1.1f, 1);
-        animator.setDuration(200);
+        animator.setDuration(DEFAULT_ANIMATION_DURATION);
+        animator.setInterpolator(new DecelerateInterpolator());
         animator.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
             @Override
             public void onAnimationUpdate(ValueAnimator valueAnimator) {
@@ -32,7 +35,8 @@ public class DefaultFragmentAnimator extends FragmentAnimator {
 
     public Animator animateStop(Fragment fragment) {
         ValueAnimator animator = ValueAnimator.ofFloat(1.1f, 1);
-        animator.setDuration(200);
+        animator.setDuration(DEFAULT_ANIMATION_DURATION);
+        animator.setInterpolator(new DecelerateInterpolator());
         animator.start();
         return animator;
     }
@@ -40,7 +44,8 @@ public class DefaultFragmentAnimator extends FragmentAnimator {
     public Animator animateRemove(Fragment fragment) {
         final View view = fragment.getView();
         ValueAnimator animator = ValueAnimator.ofFloat(1, 1.1f);
-        animator.setDuration(200);
+        animator.setDuration(DEFAULT_ANIMATION_DURATION);
+        animator.setInterpolator(new DecelerateInterpolator());
         animator.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
             @Override
             public void onAnimationUpdate(ValueAnimator valueAnimator) {
@@ -56,6 +61,10 @@ public class DefaultFragmentAnimator extends FragmentAnimator {
     }
 
     public Animator animateStart(Fragment fragment) {
+        final View view = fragment.getView();
+        ViewHelper.setAlpha(view, 1);
+        ViewHelper.setScaleX(view, 1);
+        ViewHelper.setScaleY(view, 1);
         return null;
     }
 

@@ -5,8 +5,6 @@ import android.util.SparseArray;
 import android.view.View;
 import android.view.ViewGroup;
 
-import java.util.HashMap;
-
 /**
  * Created by Marcin on 2016-05-11.
  */
@@ -42,6 +40,6 @@ public abstract class FragmentPagerAdapter extends PagerAdapter {
 
     @Override
     public boolean isViewFromObject(View view, Object object) {
-        return ((Fragment) object).getView() == view;
+        return ((Fragment) object).getRootView() == view;
     }
 }

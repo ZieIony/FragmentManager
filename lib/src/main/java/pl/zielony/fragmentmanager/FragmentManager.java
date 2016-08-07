@@ -31,7 +31,7 @@ public class FragmentManager {
     private List<FragmentState> activeStates = new ArrayList<>();
     private static SparseArray<Bundle> results = new SparseArray<>();
     private FragmentManager parent;
-    private View root;
+    private FragmentRootView root;
     private boolean started = false;
     private boolean resumed = false;
     private static Map<Class<? extends Fragment>, Fragment> fragmentPool = new HashMap<>();
@@ -239,19 +239,24 @@ public class FragmentManager {
         synchronized (FragmentManager.class) {
             activeStates.add(state);
         }
-        FragmentRootView view = fragment.getView();
-        view.setVisibility(View.INVISIBLE);
+        FragmentRootView rootView = fragment.getRootView();
         final ViewGroup container = getContainer(state, root);
-        container.addView(view);
+        container.addView(rootView);
         synchronized (FragmentManager.class) {
             if (started)
                 fragment.start(Fragment.ADD);
         }
-        view.setVisibility(View.VISIBLE);
+        final View view = fragment.getView();
+        view.setVisibility(View.INVISIBLE);
         Animator animator = fragment.animateAdd();
         if (animator != null) {
-            animator.addListener(new LockListenerAdapter(view));
+            animator.addListener(new LockListenerAdapter(rootView));
             animator.addListener(new AnimatorListenerAdapter() {
+                @Override
+                public void onAnimationStart(Animator animation) {
+                    view.setVisibility(View.VISIBLE);
+                }
+
                 @Override
                 public void onAnimationEnd(Animator animation) {
                     animateAddFinished(state);
@@ -278,8 +283,8 @@ public class FragmentManager {
             activeStates.add(state);
         }
         ViewGroup container = getContainer(state, root);
-        FragmentRootView view = fragment.getView();
-        container.addView(view, 0);
+        FragmentRootView rootView = fragment.getRootView();
+        container.addView(rootView, 0);
         if (!state.fragmentState.isEmpty()) {
             fragment.onRestoreState(state.fragmentState);
             state.fragmentState.clear();
@@ -293,12 +298,18 @@ public class FragmentManager {
             if (started)
                 fragment.start(0);
         }
-        view.setVisibility(View.VISIBLE);
+        final View view = fragment.getView();
+        view.setVisibility(View.INVISIBLE);
         ViewHelper.setAlpha(view, 1);
         Animator animator = fragment.animateStart();
         if (animator != null) {
-            animator.addListener(new LockListenerAdapter(view));
+            animator.addListener(new LockListenerAdapter(rootView));
             animator.addListener(new AnimatorListenerAdapter() {
+                @Override
+                public void onAnimationStart(Animator animation) {
+                    view.setVisibility(View.VISIBLE);
+                }
+
                 @Override
                 public void onAnimationEnd(Animator animation) {
                     animateStartFinished(state);
@@ -319,7 +330,7 @@ public class FragmentManager {
 
     Animator stopState(final FragmentState state) {
         final Fragment fragment = state.fragment;
-        final FragmentRootView view = fragment.getView();
+        final FragmentRootView view = fragment.getRootView();
         final ViewGroup container = getContainer(state, root);
         synchronized (FragmentManager.class) {
             activeStates.remove(state);
@@ -341,12 +352,13 @@ public class FragmentManager {
 
     private void animateStopFinished(FragmentState state, ViewGroup container) {
         final Fragment fragment = state.fragment;
-        final View view = fragment.getView();
+        final View rootView = fragment.getRootView();
         fragment.pause(0);
+        View view = fragment.getView();
         view.setVisibility(View.INVISIBLE);
         fragment.stop(0);
         view.setAnimation(null);
-        container.removeView(view);
+        container.removeView(rootView);
         state.fragment = null;
         fragment.onSaveState(state.fragmentState);
         fragment.clear();
@@ -355,7 +367,7 @@ public class FragmentManager {
 
     Animator removeState(final FragmentState state) {
         final Fragment fragment = state.fragment;
-        final FragmentRootView view = fragment.getView();
+        final FragmentRootView view = fragment.getRootView();
         final ViewGroup container = getContainer(state, root);
         synchronized (FragmentManager.class) {
             activeStates.remove(state);
@@ -377,10 +389,10 @@ public class FragmentManager {
 
     private void animateRemoveFinished(FragmentState state, ViewGroup container) {
         final Fragment fragment = state.fragment;
-        final View view = fragment.getView();
+        final View view = fragment.getRootView();
         fragment.pause(Fragment.REMOVE);
-        view.setVisibility(View.INVISIBLE);
-        view.setAnimation(null);
+        //view.setVisibility(View.INVISIBLE);
+        //view.setAnimation(null);
         container.removeView(view);
         state.fragment = null;
         fragment.stop(Fragment.REMOVE);
@@ -420,7 +432,7 @@ public class FragmentManager {
             if (started)
                 state.fragment.stop(0);
             state.fragment.onSaveState(state.fragmentState);
-            //getContainer(state).removeView(state.fragment.getView());
+            //getContainer(state).removeView(state.fragment.getRootView());
         }
 
         ArrayList<Bundle> transactionBundles = new ArrayList<>();
@@ -467,7 +479,7 @@ public class FragmentManager {
                 activeStates.add(state);
             }
             ViewGroup container = getContainer(state, root);
-            View view = fragment.getView();
+            View view = fragment.getRootView();
             container.addView(view);
             if (!state.fragmentState.isEmpty())
                 fragment.onRestoreState(state.fragmentState);
@@ -562,11 +574,11 @@ public class FragmentManager {
         results.put(id, result);
     }
 
-    public View getRoot() {
+    public FragmentRootView getRootView() {
         return root;
     }
 
-    public void setRoot(View root) {
+    public void setRoot(FragmentRootView root) {
         this.root = root;
     }
 

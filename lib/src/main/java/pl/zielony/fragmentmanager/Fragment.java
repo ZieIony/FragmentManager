@@ -25,6 +25,11 @@ public abstract class Fragment {
     public static final int ACTIVITY = 2;
     public static final int REMOVE = 4;
 
+    private static final int STATE_CREATED = 1;
+    private static final int STATE_ATTACHED = 2;
+    private static final int STATE_STARTED = 3;
+    private static final int STATE_RESUMED = 4;
+
     private static final String FRAGMENT_MANAGER = "fragmentManager";
     private static final String HIERARCHY_STATE = "hierarchyState";
     private static final String TARGET = "target";
@@ -34,7 +39,8 @@ public abstract class Fragment {
     private final FragmentAnnotation annotation;
 
     private Activity activity;
-    private FragmentRootView view;
+    private View view;
+    private FragmentRootView rootView;
     private Handler handler;
     private FragmentManager fragmentManager;
     private FragmentManager childFragmentManager;
@@ -43,8 +49,9 @@ public abstract class Fragment {
     private int id;
     private static int idSequence = 0;
     private String tag;
-    private boolean started;
-    private boolean resumed;
+
+    private StateMachine stateMachine = new StateMachine();
+
     private boolean pooling;
     private boolean fresh = true;
     private FragmentAnimator fragmentAnimator;
@@ -61,6 +68,51 @@ public abstract class Fragment {
                 }
             }
         }
+
+        stateMachine.addEdge(StateMachine.STATE_NEW, STATE_CREATED, new EdgeListener<Void>() {
+            @Override
+            public void onEdge(Void param) {
+                onCreate();
+            }
+        });
+        stateMachine.addEdge(STATE_CREATED, STATE_ATTACHED, new EdgeListener<Void>() {
+            @Override
+            public void onEdge(Void param) {
+                onAttach();
+            }
+        });
+        stateMachine.addEdge(STATE_ATTACHED, STATE_STARTED, new EdgeListener<Integer>() {
+            @Override
+            public void onEdge(Integer param) {
+                onStart(param);
+                fresh = false;
+            }
+        });
+        stateMachine.addEdge(STATE_STARTED, STATE_RESUMED, new EdgeListener<Integer>() {
+            @Override
+            public void onEdge(Integer param) {
+                onResume(param);
+            }
+        });
+
+        stateMachine.addEdge(STATE_RESUMED, STATE_STARTED, new EdgeListener<Integer>() {
+            @Override
+            public void onEdge(Integer param) {
+                onPause(param);
+            }
+        });
+        stateMachine.addEdge(STATE_STARTED, STATE_ATTACHED, new EdgeListener<Integer>() {
+            @Override
+            public void onEdge(Integer param) {
+                onStop(param);
+            }
+        });
+        stateMachine.addEdge(STATE_ATTACHED, STATE_CREATED, new EdgeListener<Void>() {
+            @Override
+            public void onEdge(Void param) {
+                onDetach();
+            }
+        });
     }
 
     void clear() {
@@ -70,6 +122,7 @@ public abstract class Fragment {
         activity = null;
         fragmentManager = null;
         fresh = true;
+        stateMachine.resetState();
     }
 
     void init(FragmentManager fragmentManager) {
@@ -79,14 +132,38 @@ public abstract class Fragment {
         this.fragmentManager = fragmentManager;
         childFragmentManager = new FragmentManager(fragmentManager);
         if (view == null) {
-            view = new FragmentRootView(activity);
-            view.addView(onCreateView());
+            rootView = new FragmentRootView(activity);
+            view = onCreateView();
+            rootView.addView(view);
+            rootView.addOnLayoutChangeListener(new FragmentRootView.OnLayoutChangeListener() {
+                @Override
+                public void onLayoutChange(View v, int left, int top, int right, int bottom, int oldLeft, int oldTop, int oldRight, int oldBottom) {
+                    if (stateMachine.getState() == STATE_CREATED)
+                        stateMachine.setState(STATE_ATTACHED);
+                }
+            });
+            rootView.addOnAttachStateChangeListener(new FragmentRootView.OnAttachStateChangeListener() {
+                @Override
+                public void onViewAttachedToWindow(View v) {
+                    if (rootView.getWidth() > 0 && rootView.getHeight() > 0 && stateMachine.getState() == STATE_CREATED)
+                        stateMachine.setState(STATE_ATTACHED);
+                }
+
+                @Override
+                public void onViewDetachedFromWindow(View v) {
+
+                }
+            });
         }
-        childFragmentManager.setRoot(view);
-        onCreate();
+        childFragmentManager.setRoot(rootView);
+        stateMachine.setState(STATE_CREATED);
     }
 
     protected void onCreate() {
+
+    }
+
+    protected void onDestroy() {
 
     }
 
@@ -106,58 +183,61 @@ public abstract class Fragment {
         return "";
     }
 
+    protected void onAttach() {
+
+    }
+
+    protected void onDetach() {
+
+    }
+
     public void start(int detail) {
-        if (started)
-            return;
-        onStart(detail | (fresh ? ADD : 0));
-        started = true;
-        fresh = false;
+        stateMachine.queueState(STATE_STARTED, detail | (fresh ? ADD : 0));
     }
 
     protected void onStart(int detail) {
     }
 
     public void resume(int detail) {
-        if (resumed)
-            return;
-        onResume(detail);
-        resumed = true;
+        stateMachine.queueState(STATE_RESUMED, detail);
     }
 
     protected void onResume(int detail) {
     }
 
-
     public void pause(int detail) {
-        if (!resumed)
-            return;
-        resumed = false;
-        onPause(detail);
+        stateMachine.queueState(STATE_STARTED, detail);
     }
 
     protected void onPause(int detail) {
     }
 
     public void stop(int detail) {
-        if (!started)
-            return;
-        started = false;
-        onStop(detail);
+        stateMachine.queueState(STATE_ATTACHED, detail);
     }
 
     protected void onStop(int detail) {
     }
 
+    public boolean isAttached() {
+        return stateMachine.getState() == STATE_ATTACHED || stateMachine.getState() == STATE_STARTED || stateMachine.getState() == STATE_RESUMED;
+    }
+
     public boolean isStarted() {
-        return started;
+        return stateMachine.getState() == STATE_STARTED || stateMachine.getState() == STATE_RESUMED;
     }
 
     public boolean isResumed() {
-        return resumed;
+        return stateMachine.getState() == STATE_RESUMED;
     }
 
     @NonNull
-    public FragmentRootView getView() {
+    public FragmentRootView getRootView() {
+        return rootView;
+    }
+
+    @NonNull
+    public View getView() {
         return view;
     }
 
@@ -188,7 +268,7 @@ public abstract class Fragment {
     public List<View> findViewsById(int id) {
         ArrayList<View> result = new ArrayList<>();
         ArrayList<ViewGroup> groups = new ArrayList<>();
-        groups.add(view);
+        groups.add(rootView);
 
         while (!groups.isEmpty()) {
             ViewGroup group = groups.remove(0);
@@ -213,7 +293,7 @@ public abstract class Fragment {
     public List<View> findViewsWithTag(Object tag) {
         ArrayList<View> result = new ArrayList<>();
         ArrayList<ViewGroup> groups = new ArrayList<>();
-        groups.add(view);
+        groups.add(rootView);
 
         while (!groups.isEmpty()) {
             ViewGroup group = groups.remove(0);
@@ -430,5 +510,9 @@ public abstract class Fragment {
 
     public void setAnimator(FragmentAnimator fragmentAnimator) {
         this.fragmentAnimator = fragmentAnimator;
+    }
+
+    public void setOnStateChangeListener(OnStateChangeListener stateListener) {
+        stateMachine.setOnStateChangeListener(stateListener);
     }
 }

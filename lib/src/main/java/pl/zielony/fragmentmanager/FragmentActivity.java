@@ -5,17 +5,28 @@ import android.os.Bundle;
 import android.support.annotation.Nullable;
 import android.support.v7.app.AppCompatActivity;
 import android.view.KeyEvent;
+import android.view.View;
+import android.view.ViewGroup;
 
 /**
  * Created by Marcin on 2016-05-11.
  */
 public class FragmentActivity extends AppCompatActivity {
     private FragmentManager fragmentManager;
+    private FragmentRootView rootView;
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         fragmentManager = new FragmentManager(this);
+        fragmentManager.setRoot(rootView);
+    }
+
+    @Override
+    public void setContentView(View view, ViewGroup.LayoutParams params) {
+        rootView = new FragmentRootView(this);
+        rootView.addView(view);
+        super.setContentView(rootView, params);
     }
 
     @Override
