@@ -9,11 +9,11 @@ class FragmentState {
 
     private static final String CLASS = "class", ID = "layoutId", TAG = "tag", FRAGMENT = "fragment";
 
-    Class<? extends Fragment> fragmentClass;
-    Fragment fragment;
+    private Class<? extends Fragment> fragmentClass;
+    private Fragment fragment;
     int layoutId;
     String tag;
-    Bundle fragmentState;
+    private Bundle fragmentState;
 
     FragmentState() {
         fragmentState = new Bundle();
@@ -43,5 +43,21 @@ class FragmentState {
         } catch (ClassNotFoundException e) {
             e.printStackTrace();
         }
+    }
+
+    public Fragment getFragment() {
+        return fragment;
+    }
+
+    public void instantiateFragment(FragmentManager fragmentManager) {
+        fragment = fragmentManager.instantiate(fragmentClass);
+    }
+
+    public Bundle getFragmentState() {
+        return fragmentState;
+    }
+
+    public void clearFragment() {
+        fragment = null;
     }
 }

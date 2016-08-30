@@ -2,15 +2,12 @@ package pl.zielony.fragmentmanager;
 
 import android.graphics.Rect;
 import android.os.Bundle;
-import android.util.TypedValue;
 import android.view.View;
 import android.view.animation.DecelerateInterpolator;
 import android.view.animation.Interpolator;
-import android.widget.TextView;
 
 import com.nineoldandroids.animation.Animator;
 import com.nineoldandroids.animation.AnimatorListenerAdapter;
-import com.nineoldandroids.animation.ArgbEvaluator;
 import com.nineoldandroids.animation.ValueAnimator;
 
 import java.util.List;
@@ -18,24 +15,21 @@ import java.util.List;
 /**
  * Created by Marcin on 2016-06-26.
  */
-public class SharedElement implements ValueAnimator.AnimatorUpdateListener {
+public abstract class SharedElement<FrameType extends KeyFrame, ViewType extends View> implements ValueAnimator.AnimatorUpdateListener {
     private static final String FROM = "from";
     private static final String TO = "to";
     private static final String VIEW_ID = "viewId";
 
-    private int idFrom, idTo;
-    private int viewId;
+    protected int idFrom;
+    protected int idTo;
+    protected int viewId;
     private long duration = DefaultFragmentAnimator.DEFAULT_ANIMATION_DURATION;
     private Interpolator interpolator;
 
-    private View view;
-    private FragmentRootView container;
-    private KeyFrame frameFrom;
-    private KeyFrame frameTo;
-
-    static class KeyFrame {
-        Rect rect = new Rect();
-    }
+    protected ViewType view;
+    protected FragmentRootView container;
+    protected FrameType frameFrom;
+    protected FrameType frameTo;
 
     @Override
     public void onAnimationUpdate(ValueAnimator animation) {
@@ -47,52 +41,6 @@ public class SharedElement implements ValueAnimator.AnimatorUpdateListener {
                 lerp(rectFrom.right, rectTo.right, value),
                 lerp(rectFrom.bottom, rectTo.bottom, value));
         container.invalidate();
-    }
-
-    private static class TextViewKeyFrame extends KeyFrame {
-        float textSize = 0;
-        int textColor = 0;
-    }
-
-    private static class TextViewAnimatorListener implements ValueAnimator.AnimatorUpdateListener {
-        private TextView view;
-        private View container;
-        private final TextViewKeyFrame frameFrom;
-        private final TextViewKeyFrame frameTo;
-        ArgbEvaluator evaluator = new ArgbEvaluator();
-
-        TextViewAnimatorListener(TextView view, View container, TextViewKeyFrame frameFrom, TextViewKeyFrame frameTo) {
-            this.view = view;
-            this.container = container;
-            this.frameFrom = frameFrom;
-            this.frameTo = frameTo;
-        }
-
-        @Override
-        public void onAnimationUpdate(ValueAnimator animation) {
-            float value = (Float) animation.getAnimatedValue();
-            Rect rectFrom = frameFrom.rect;
-            Rect rectTo = frameTo.rect;
-            view.layout(lerp(rectFrom.left, rectTo.left, value),
-                    lerp(rectFrom.top, rectTo.top, value),
-                    lerp(rectFrom.right, rectTo.right, value),
-                    lerp(rectFrom.bottom, rectTo.bottom, value));
-            view.setTextColor((Integer) evaluator.evaluate(value, frameFrom.textColor, frameTo.textColor));
-            view.setTextSize(TypedValue.COMPLEX_UNIT_PX, lerp(frameFrom.textSize, frameTo.textSize, value));
-            container.invalidate();
-        }
-    }
-
-    public SharedElement(View view, Fragment from, Fragment to) {
-        this.idFrom = from.getId();
-        this.idTo = to.getId();
-        this.viewId = view.getId();
-    }
-
-    public SharedElement(int id, Fragment from, Fragment to) {
-        this.idFrom = from.getId();
-        this.idTo = to.getId();
-        this.viewId = id;
     }
 
     public SharedElement() {
@@ -122,15 +70,15 @@ public class SharedElement implements ValueAnimator.AnimatorUpdateListener {
         final FragmentRootView rootFrom = fragmentFrom.getRootView();
         final FragmentRootView rootTo = fragmentTo.getRootView();
 
-        container = rootTo;
+        container = rootTo; // TODO: shared element animation type
 
         final int[] containerLocation = new int[2];
         container.getLocationOnScreen(containerLocation);
 
-        final View viewFrom = rootFrom.findViewById(viewId);
+        final ViewType viewFrom = (ViewType) rootFrom.findViewById(viewId);
         frameFrom = setupFrame(viewFrom, containerLocation);
 
-        final View viewTo = rootTo.findViewById(viewId);
+        final ViewType viewTo = (ViewType) rootTo.findViewById(viewId);
         frameTo = setupFrame(viewTo, containerLocation);
 
         ValueAnimator animator = start(viewFrom, viewTo);
@@ -159,34 +107,16 @@ public class SharedElement implements ValueAnimator.AnimatorUpdateListener {
         return animator;
     }
 
-    private KeyFrame setupFrame(View view, int[] containerLocation) {
-        KeyFrame frame;// = new KeyFrame();
-        if (view instanceof TextView) {
-            frame = new TextViewKeyFrame();
-            ((TextViewKeyFrame) frame).textColor = ((TextView) view).getCurrentTextColor();
-            ((TextViewKeyFrame) frame).textSize = ((TextView) view).getTextSize();
-        } else {
-            frame = new KeyFrame();
-        }
-        final int[] viewLocation = new int[2];
-        view.getLocationOnScreen(viewLocation);
-        frame.rect.set(0, 0, view.getWidth(), view.getHeight());
-        frame.rect.offset(viewLocation[0] - containerLocation[0], viewLocation[1] - containerLocation[1]);
-        return frame;
-    }
+    protected abstract FrameType setupFrame(View view, int[] containerLocation);
 
-    private ValueAnimator start(final View viewFrom, final View viewTo) {
+    private ValueAnimator start(final ViewType viewFrom, final ViewType viewTo) {
         this.view = viewTo;
         ValueAnimator animator = ValueAnimator.ofFloat(0, 1);
         animator.setDuration(duration);
         if (interpolator == null)
             interpolator = new DecelerateInterpolator();
         animator.setInterpolator(interpolator);
-        if (viewFrom instanceof TextView) {
-            animator.addUpdateListener(new TextViewAnimatorListener((TextView) view, container, (TextViewKeyFrame) frameFrom, (TextViewKeyFrame) frameTo));
-        } else {
-            animator.addUpdateListener(this);
-        }
+        animator.addUpdateListener(this);
         return animator;
     }
 
