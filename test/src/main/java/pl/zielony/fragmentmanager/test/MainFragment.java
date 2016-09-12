@@ -42,9 +42,9 @@ public class MainFragment extends Fragment {
     }
 
     @Override
-    protected void onStart(int detail) {
-        super.onStart(detail);
-        if ((detail & Fragment.ADD) != 0)
+    protected void onStart(boolean fresh) {
+        super.onStart(fresh);
+        if (fresh)
             getChildFragmentManager().add(Fragment1.class, "container", TransactionMode.Join).execute();
     }
 }

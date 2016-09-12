@@ -12,7 +12,7 @@ import pl.zielony.fragmentmanager.FragmentAnnotation;
 /**
  * Created by Marcin on 2015-12-08.
  */
-@FragmentAnnotation(layout = R.layout.fragment1, pooling = false)
+@FragmentAnnotation(layout = R.layout.fragment1)
 public class Fragment1 extends Fragment {
 
     @Override

@@ -26,6 +26,8 @@ public class FragmentRootView extends FrameLayout {
     private List<OnAttachStateChangeListener> attachListeners = new ArrayList<>();
     private boolean preventLayout = false;
 
+    private boolean attached = false;
+
     class ViewDesc {
         private final int left, right, top, bottom;
 
@@ -77,8 +79,13 @@ public class FragmentRootView extends FrameLayout {
         this.locked = locked;
     }
 
+    public boolean isAttached() {
+        return attached;
+    }
+
     @Override
     protected void onAttachedToWindow() {
+        attached = true;
         super.onAttachedToWindow();
         for (OnAttachStateChangeListener listener : attachListeners)
             listener.onViewAttachedToWindow(this);
@@ -86,6 +93,7 @@ public class FragmentRootView extends FrameLayout {
 
     @Override
     protected void onDetachedFromWindow() {
+        attached = false;
         super.onDetachedFromWindow();
         for (OnAttachStateChangeListener listener : attachListeners)
             listener.onViewDetachedFromWindow(this);

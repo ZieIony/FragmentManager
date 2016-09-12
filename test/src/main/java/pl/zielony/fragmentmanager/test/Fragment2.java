@@ -13,7 +13,7 @@ import pl.zielony.fragmentmanager.ViewSharedElement;
 /**
  * Created by Marcin on 2015-12-08.
  */
-@FragmentAnnotation(layout = R.layout.fragment2, pooling = false)
+@FragmentAnnotation(layout = R.layout.fragment2)
 public class Fragment2 extends Fragment {
     @Override
     protected void onCreate() {
@@ -21,7 +21,7 @@ public class Fragment2 extends Fragment {
         findViewById(R.id.row).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                Fragment3 fragment3 = getFragmentManager().instantiate(Fragment3.class);
+                Fragment3 fragment3 = Fragment.instantiate(Fragment3.class,getContext());
                 FragmentTransaction transaction = getFragmentManager().replace(fragment3, "container", TransactionMode.Push);
                 transaction.addSharedElement(new ViewSharedElement(findViewById(R.id.image), Fragment2.this, fragment3));
                 transaction.addSharedElement(new TextViewSharedElement((TextView)findViewById(R.id.title), Fragment2.this, fragment3));

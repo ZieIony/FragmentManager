@@ -2,6 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
+      <module fileurl="file://$PROJECT_DIR$/carbon/carbon.iml" filepath="$PROJECT_DIR$/carbon/carbon.iml" />
       <module fileurl="file://$PROJECT_DIR$/fragment-manager.iml" filepath="$PROJECT_DIR$/fragment-manager.iml" />
       <module fileurl="file://$PROJECT_DIR$/lib/lib.iml" filepath="$PROJECT_DIR$/lib/lib.iml" />
       <module fileurl="file://$PROJECT_DIR$/test/test.iml" filepath="$PROJECT_DIR$/test/test.iml" />

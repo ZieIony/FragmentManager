@@ -15,16 +15,14 @@ import android.view.ViewGroup;
 import com.nineoldandroids.animation.Animator;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Created by Marcin on 2015-03-20.
  */
 public abstract class Fragment {
-    public static final int ADD = 1;
-    public static final int ACTIVITY = 2;
-    public static final int REMOVE = 4;
-
     private static final int STATE_CREATED = 1;
     private static final int STATE_ATTACHED = 2;
     private static final int STATE_STARTED = 3;
@@ -36,27 +34,38 @@ public abstract class Fragment {
     private static final String ID = "id";
     private static final String TAG = "tag";
     private static final String FRESH = "fresh";
+
+    private static final int NO_TARGET = -1;
+
     private final FragmentAnnotation annotation;
 
     private Activity activity;
+    private Context context;
     private View view;
     private FragmentRootView rootView;
     private Handler handler;
     private FragmentManager fragmentManager;
     private FragmentManager childFragmentManager;
     private Fragment parent;
-    private Integer target;
+
+    private int target = NO_TARGET;
+    private static SparseArray<Bundle> results = new SparseArray<>();
+
     private int id;
     private static int idSequence = 0;
     private String tag;
 
-    private StateMachine stateMachine = new StateMachine();
+    private StateMachine stateMachine;
+    private int desiredState;
 
     private boolean pooling;
+    private static Map<Class<? extends Fragment>, Fragment> fragmentPool = new HashMap<>();
+
     private boolean fresh = true;
     private FragmentAnimator fragmentAnimator;
 
     public Fragment() {
+        stateMachine = new StateMachine();
         annotation = getClass().getAnnotation(FragmentAnnotation.class);
         if (annotation != null) {
             pooling = annotation.pooling();
@@ -69,47 +78,86 @@ public abstract class Fragment {
             }
         }
 
-        stateMachine.addEdge(StateMachine.STATE_NEW, STATE_CREATED, new EdgeListener<Void>() {
+        stateMachine.addEdge(StateMachine.STATE_NEW, STATE_CREATED, new EdgeListener() {
             @Override
-            public void onEdge(Void param) {
+            public boolean canChangeState() {
+                return view != null;
+            }
+
+            @Override
+            public void onStateChanged() {
                 onCreate();
             }
         });
-        stateMachine.addEdge(STATE_CREATED, STATE_ATTACHED, new EdgeListener<Void>() {
+        stateMachine.addEdge(STATE_CREATED, STATE_ATTACHED, new EdgeListener() {
             @Override
-            public void onEdge(Void param) {
+            public boolean canChangeState() {
+                return rootView.isAttached() && rootView.getWidth() > 0 && rootView.getHeight() > 0;
+            }
+
+            @Override
+            public void onStateChanged() {
                 onAttach();
             }
         });
-        stateMachine.addEdge(STATE_ATTACHED, STATE_STARTED, new EdgeListener<Integer>() {
+        stateMachine.addEdge(STATE_ATTACHED, STATE_STARTED, new EdgeListener() {
             @Override
-            public void onEdge(Integer param) {
-                onStart(param);
+            public boolean canChangeState() {
+                return fragmentManager.isStarted() && (desiredState == STATE_STARTED || desiredState == STATE_RESUMED);
+            }
+
+            @Override
+            public void onStateChanged() {
+                onStart(fresh);
+                childFragmentManager.onStart();
                 fresh = false;
             }
         });
-        stateMachine.addEdge(STATE_STARTED, STATE_RESUMED, new EdgeListener<Integer>() {
+        stateMachine.addEdge(STATE_STARTED, STATE_RESUMED, new EdgeListener() {
             @Override
-            public void onEdge(Integer param) {
-                onResume(param);
+            public boolean canChangeState() {
+                return fragmentManager.isResumed() && desiredState == STATE_RESUMED;
+            }
+
+            @Override
+            public void onStateChanged() {
+                onResume();
+                childFragmentManager.onResume();
             }
         });
 
-        stateMachine.addEdge(STATE_RESUMED, STATE_STARTED, new EdgeListener<Integer>() {
+        stateMachine.addEdge(STATE_RESUMED, STATE_STARTED, new EdgeListener() {
             @Override
-            public void onEdge(Integer param) {
-                onPause(param);
+            public boolean canChangeState() {
+                return !fragmentManager.isResumed() || desiredState == STATE_STARTED || desiredState == STATE_ATTACHED;
+            }
+
+            @Override
+            public void onStateChanged() {
+                onPause();
+                childFragmentManager.onPause();
             }
         });
-        stateMachine.addEdge(STATE_STARTED, STATE_ATTACHED, new EdgeListener<Integer>() {
+        stateMachine.addEdge(STATE_STARTED, STATE_ATTACHED, new EdgeListener() {
             @Override
-            public void onEdge(Integer param) {
-                onStop(param);
+            public boolean canChangeState() {
+                return !fragmentManager.isStarted() || desiredState == STATE_ATTACHED;
+            }
+
+            @Override
+            public void onStateChanged() {
+                onStop();
+                childFragmentManager.onStop();
             }
         });
-        stateMachine.addEdge(STATE_ATTACHED, STATE_CREATED, new EdgeListener<Void>() {
+        stateMachine.addEdge(STATE_ATTACHED, STATE_CREATED, new EdgeListener() {
             @Override
-            public void onEdge(Void param) {
+            public boolean canChangeState() {
+                return !rootView.isAttached();
+            }
+
+            @Override
+            public void onStateChanged() {
                 onDetach();
             }
         });
@@ -125,38 +173,41 @@ public abstract class Fragment {
         stateMachine.resetState();
     }
 
-    void init(FragmentManager fragmentManager) {
+    void setFragmentManager(FragmentManager manager) {
+        this.activity = manager.getActivity();
+        this.fragmentManager = manager;
+        childFragmentManager = new FragmentManager(fragmentManager);
+        childFragmentManager.setRoot(rootView);
+    }
+
+    private void init(Context context) {
+        this.context = context;
         handler = new Handler();
         id = idSequence++;
-        this.activity = fragmentManager.getActivity();
-        this.fragmentManager = fragmentManager;
-        childFragmentManager = new FragmentManager(fragmentManager);
         if (view == null) {
-            rootView = new FragmentRootView(activity);
+            rootView = new FragmentRootView(context);
             view = onCreateView();
             rootView.addView(view);
             rootView.addOnLayoutChangeListener(new FragmentRootView.OnLayoutChangeListener() {
                 @Override
                 public void onLayoutChange(View v, int left, int top, int right, int bottom, int oldLeft, int oldTop, int oldRight, int oldBottom) {
-                    if (stateMachine.getState() == STATE_CREATED)
-                        stateMachine.setState(STATE_ATTACHED);
+                    stateMachine.update();
                 }
             });
             rootView.addOnAttachStateChangeListener(new FragmentRootView.OnAttachStateChangeListener() {
                 @Override
                 public void onViewAttachedToWindow(View v) {
-                    if (rootView.getWidth() > 0 && rootView.getHeight() > 0 && stateMachine.getState() == STATE_CREATED)
-                        stateMachine.setState(STATE_ATTACHED);
+                    if (rootView.getWidth() > 0 && rootView.getHeight() > 0)
+                        stateMachine.update();
                 }
 
                 @Override
                 public void onViewDetachedFromWindow(View v) {
-
+                    stateMachine.update();
                 }
             });
         }
-        childFragmentManager.setRoot(rootView);
-        stateMachine.setState(STATE_CREATED);
+        stateMachine.update();
     }
 
     protected void onCreate() {
@@ -191,32 +242,36 @@ public abstract class Fragment {
 
     }
 
-    public void start(int detail) {
-        stateMachine.queueState(STATE_STARTED, detail | (fresh ? ADD : 0));
+    public void start() {
+        desiredState = STATE_STARTED;
+        stateMachine.update();
     }
 
-    protected void onStart(int detail) {
+    protected void onStart(boolean freshStart) {
     }
 
-    public void resume(int detail) {
-        stateMachine.queueState(STATE_RESUMED, detail);
+    public void resume() {
+        desiredState = STATE_RESUMED;
+        stateMachine.update();
     }
 
-    protected void onResume(int detail) {
+    protected void onResume() {
     }
 
-    public void pause(int detail) {
-        stateMachine.queueState(STATE_STARTED, detail);
+    public void pause() {
+        desiredState = STATE_STARTED;
+        stateMachine.update();
     }
 
-    protected void onPause(int detail) {
+    protected void onPause() {
     }
 
-    public void stop(int detail) {
-        stateMachine.queueState(STATE_ATTACHED, detail);
+    public void stop() {
+        desiredState = STATE_ATTACHED;
+        stateMachine.update();
     }
 
-    protected void onStop(int detail) {
+    protected void onStop() {
     }
 
     public boolean isAttached() {
@@ -250,7 +305,7 @@ public abstract class Fragment {
     }
 
     public Context getContext() {
-        return activity;
+        return context;
     }
 
     public FragmentManager getFragmentManager() {
@@ -344,7 +399,7 @@ public abstract class Fragment {
         view.saveHierarchyState(container);
         bundle.putSparseParcelableArray(HIERARCHY_STATE, container);
 
-        if (target != null)
+        if (target != NO_TARGET)
             bundle.putInt(TARGET, target);
         bundle.putInt(ID, id);
         bundle.putString(TAG, tag);
@@ -370,9 +425,9 @@ public abstract class Fragment {
     }
 
     public void setResult(Bundle result) {
-        if (target == null)
+        if (target == NO_TARGET)
             return;
-        fragmentManager.setResult(target, result);
+        results.append(target, result);
     }
 
     public String getString(int resId) {
@@ -394,13 +449,13 @@ public abstract class Fragment {
     }
 
     public <T extends Fragment> FragmentTransaction add(Class<T> fragmentClass, int id, TransactionMode mode) {
-        T fragment = childFragmentManager.instantiate(fragmentClass);
+        T fragment = Fragment.instantiate(fragmentClass, activity);
         fragment.setParent(this);
         return childFragmentManager.add(fragment, id, mode);
     }
 
     public <T extends Fragment> FragmentTransaction add(Class<T> fragmentClass, String tag, TransactionMode mode) {
-        T fragment = childFragmentManager.instantiate(fragmentClass);
+        T fragment = Fragment.instantiate(fragmentClass, activity);
         fragment.setParent(this);
         return childFragmentManager.add(fragment, tag, mode);
     }
@@ -421,19 +476,19 @@ public abstract class Fragment {
     }
 
     public <T extends Fragment> FragmentTransaction replace(Class<T> fragmentClass, int id, TransactionMode mode) {
-        T fragment = childFragmentManager.instantiate(fragmentClass);
+        T fragment = Fragment.instantiate(fragmentClass, activity);
         fragment.setParent(this);
         return childFragmentManager.replace(fragment, id, mode);
     }
 
     public <T extends Fragment, T2 extends Fragment> FragmentTransaction replace(T2 removeFragment, Class<T> fragmentClass, TransactionMode mode) {
-        T fragment = childFragmentManager.instantiate(fragmentClass);
+        T fragment = Fragment.instantiate(fragmentClass, activity);
         fragment.setParent(this);
         return childFragmentManager.replace(removeFragment, fragment, mode);
     }
 
     public <T extends Fragment> FragmentTransaction replace(Class<T> fragmentClass, String tag, TransactionMode mode) {
-        T fragment = childFragmentManager.instantiate(fragmentClass);
+        T fragment = Fragment.instantiate(fragmentClass, activity);
         fragment.setParent(this);
         return childFragmentManager.replace(fragment, tag, mode);
     }
@@ -514,5 +569,51 @@ public abstract class Fragment {
 
     public void setOnStateChangeListener(OnStateChangeListener stateListener) {
         stateMachine.setOnStateChangeListener(stateListener);
+    }
+
+    public static <T extends Fragment> T instantiate(Class<T> fragmentClass, Context context) {
+        Fragment fromPool = fragmentPool.remove(fragmentClass);
+        if (fromPool != null) {
+            fromPool.init(context);
+            return (T) fromPool;
+        }
+
+        Fragment fragment;
+        try {
+            fragment = fragmentClass.getConstructor().newInstance();
+            fragment.init(context);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+        return (T) fragment;
+    }
+
+    public static void pool(Class<? extends Fragment> fragmentClass, Context context) {
+        FragmentAnnotation annotation = fragmentClass.getAnnotation(FragmentAnnotation.class);
+        if (annotation != null && !annotation.pooling())
+            throw new RuntimeException(fragmentClass.getSimpleName() + " cannot be pooled because pooling is disabled by annotation");
+        if (!fragmentPool.containsKey(fragmentClass))
+            fragmentPool.put(fragmentClass, instantiate(fragmentClass, context));
+    }
+
+    public static void pool(Fragment fragment) {
+        if (!fragment.isPoolingEnabled())
+            return;
+        if (!fragmentPool.containsKey(fragment.getClass()))
+            fragmentPool.put(fragment.getClass(), fragment);
+    }
+
+    public int getTarget() {
+        return target;
+    }
+
+    /**
+     * Gets and removes the result
+     * @param id
+     * @return
+     */
+    public static Bundle getResult(int id) {
+        results.remove(id);
+        return results.get(id);
     }
 }

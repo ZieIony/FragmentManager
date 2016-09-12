@@ -3,9 +3,6 @@ package pl.zielony.fragmentmanager;
 import android.os.Bundle;
 import android.util.SparseArray;
 
-import java.util.ArrayList;
-import java.util.List;
-
 /**
  * Created by Marcin on 2016-07-30.
  */
@@ -18,7 +15,7 @@ public class StateMachine {
     private int state = STATE_NEW;
 
     private SparseArray<SparseArray<EdgeListener>> edges = new SparseArray<>();
-    private List<QueuedState> queuedStates = new ArrayList<>();
+    //private List<QueuedState> queuedStates = new ArrayList<>();
     private OnStateChangeListener stateListener;
 
     public void save(Bundle bundle) {
@@ -30,35 +27,35 @@ public class StateMachine {
     }
 
     public void setState(int newState) {
-        setState(newState, null);
+        if (!hasEdge(state, newState))
+            throw new IllegalStateException("cannot change state from " + state + " to state " + newState);
+        setStateInternal(newState);
+        update();
     }
 
-    public <Type> void setState(int newState, Type param) {
-        if (!hasEdge(state, newState))
-            throw new IllegalStateException("cannot move from state " + state + " to state " + newState);
-        EdgeListener<Type> listener = edges.get(state).get(newState);
+    private void setStateInternal(int newState) {
+        EdgeListener listener = edges.get(state).get(newState);
         state = newState;
-        if (listener != null)
-            listener.onEdge(param);
+        listener.onStateChanged();
         if (stateListener != null)
             stateListener.onStateChange(state);
 
-        if (queuedStates.isEmpty())
+        /*if (queuedStates.isEmpty())
             return;
 
         QueuedState queuedState = queuedStates.get(0);
         if (hasEdge(state, queuedState.state)) {
             queuedStates.remove(0);
             setState(queuedState.state, queuedState.param);
-        }
+        }*/
     }
 
     public void resetState() {
         state = STATE_NEW;
-        queuedStates.clear();
+        //queuedStates.clear();
     }
 
-    public <Type> void addEdge(int stateFrom, int stateTo, EdgeListener<Type> listener) {
+    public void addEdge(int stateFrom, int stateTo, EdgeListener listener) {
         if (edges.indexOfKey(stateFrom) < 0) {
             SparseArray<EdgeListener> list = new SparseArray<>();
             list.put(stateTo, listener);
@@ -76,7 +73,7 @@ public class StateMachine {
         return state;
     }
 
-    public <Type> void queueState(int newState, Type param) {
+    /*public <Type> void queueState(int newState, Type param) {
         if (queuedStates.isEmpty() && hasEdge(state, newState)) {
             setState(newState, param);
             return;
@@ -92,9 +89,25 @@ public class StateMachine {
             this.state = state;
             this.param = param;
         }
-    }
+    }*/
 
     public void setOnStateChangeListener(OnStateChangeListener stateListener) {
         this.stateListener = stateListener;
+    }
+
+    public void update() {
+        while (updateInternal()) ;
+    }
+
+    private boolean updateInternal() {
+        SparseArray<EdgeListener> listeners = edges.get(state);
+        for (int i = 0; i < listeners.size(); i++) {
+            int newState = listeners.keyAt(i);
+            if (listeners.get(newState).canChangeState()) {
+                setStateInternal(newState);
+                return true;
+            }
+        }
+        return false;
     }
 }

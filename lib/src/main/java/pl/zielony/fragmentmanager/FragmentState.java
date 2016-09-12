@@ -1,5 +1,6 @@
 package pl.zielony.fragmentmanager;
 
+import android.content.Context;
 import android.os.Bundle;
 
 /**
@@ -49,8 +50,8 @@ class FragmentState {
         return fragment;
     }
 
-    public void instantiateFragment(FragmentManager fragmentManager) {
-        fragment = fragmentManager.instantiate(fragmentClass);
+    public void instantiateFragment(Context context) {
+        fragment = Fragment.instantiate(fragmentClass, context);
     }
 
     public Bundle getFragmentState() {

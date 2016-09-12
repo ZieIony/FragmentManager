@@ -26,6 +26,13 @@ dependencies {
     compile fileTree(include: ['*.jar'], dir: 'libs')
     testCompile 'junit:junit:4.12'
     compile 'com.android.support:appcompat-v7:24.2.0'
+    compile 'com.android.support:support-v4:24.2.0'
+    compile 'com.android.support:gridlayout-v7:24.2.0'
+    compile 'com.android.support:recyclerview-v7:24.2.0'
+    compile 'de.greenrobot:androidsvg:1.2.2-beta-1-tweaked-2'
+    compile 'com.nineoldandroids:library:2.4.0'
+    compile 'com.android.support:design:24.2.0'
+    compile 'com.android.support.constraint:constraint-layout:1.0.0-alpha5'
     compile project(':lib')
-    compile 'com.github.ZieIony:Carbon:98a6d22331'
+    compile project(':carbon')
 }
