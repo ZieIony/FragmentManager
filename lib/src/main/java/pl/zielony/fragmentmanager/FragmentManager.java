@@ -349,9 +349,9 @@ public class FragmentManager {
         fragment.stop();
         view.setAnimation(null);
         container.removeView(rootView);
-        state.clearFragment();
         fragment.onSaveState(state.getFragmentState());
         fragment.clear();
+        state.clearFragment();
         Fragment.pool(fragment);
     }
 
@@ -382,9 +382,9 @@ public class FragmentManager {
         fragment.pause();
         final View view = fragment.getRootView();
         container.removeView(view);
-        state.clearFragment();
         fragment.stop();
         fragment.clear();
+        state.clearFragment();
         Fragment.pool(fragment);
     }
 
@@ -552,10 +552,12 @@ public class FragmentManager {
         this.root = root;
     }
 
-    public void navigate(FragmentRoute route){
-        Class<? extends Fragment> fragment = route.getFragment();
-        for(FragmentState state:activeStates){
-            if(state.getFragment().onNavigate(fragment)){
+    public void navigate(FragmentRoute route) {
+        FragmentRoute.RouteStep step = route.getStep();
+        if (step.fragment == null)
+            step.fragment = Fragment.instantiate(step.klass, activity);
+        for (FragmentState state : activeStates) {
+            if (state.getFragment().onNavigate(step.fragment, step.mode)) {
                 state.getFragment().getChildFragmentManager().navigate(route);
                 return;
             }

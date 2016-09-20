@@ -7,13 +7,41 @@ import java.util.List;
  * Created by Marcin on 2016-09-20.
  */
 public class FragmentRoute {
-    private List<Class<? extends Fragment>> fragments = new ArrayList<>();
+    static class RouteStep {
+        Class<? extends Fragment> klass;
+        Fragment fragment;
+        TransactionMode mode;
 
-    public void addFragment(Class<? extends Fragment> klass){
-        fragments.add(klass);
+        RouteStep(Class<? extends Fragment> klass, TransactionMode mode) {
+            this.klass = klass;
+            this.mode = mode;
+        }
+
+        RouteStep(Fragment fragment, TransactionMode mode) {
+            this.fragment = fragment;
+            this.mode = mode;
+        }
     }
 
-    public Class<? extends Fragment> getFragment(){
+    private List<RouteStep> fragments = new ArrayList<>();
+
+    public FragmentRoute(Class<? extends Fragment> klass, TransactionMode mode) {
+        fragments.add(new RouteStep(klass, mode));
+    }
+
+    public FragmentRoute(Fragment fragment, TransactionMode mode) {
+        fragments.add(new RouteStep(fragment, mode));
+    }
+
+    public void addFragment(Class<? extends Fragment> klass, TransactionMode mode) {
+        fragments.add(new RouteStep(klass, mode));
+    }
+
+    public void addFragment(Fragment fragment, TransactionMode mode) {
+        fragments.add(new RouteStep(fragment, mode));
+    }
+
+    RouteStep getStep() {
         return fragments.remove(0);
     }
 }

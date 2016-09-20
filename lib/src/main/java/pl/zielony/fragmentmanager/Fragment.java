@@ -129,7 +129,7 @@ public abstract class Fragment {
         stateMachine.addEdge(STATE_RESUMED, STATE_STARTED, new EdgeListener() {
             @Override
             public boolean canChangeState() {
-                return !fragmentManager.isResumed() || desiredState == STATE_STARTED || desiredState == STATE_ATTACHED;
+                return !fragmentManager.isResumed() && desiredState == STATE_STARTED ;
             }
 
             @Override
@@ -141,7 +141,7 @@ public abstract class Fragment {
         stateMachine.addEdge(STATE_STARTED, STATE_ATTACHED, new EdgeListener() {
             @Override
             public boolean canChangeState() {
-                return !fragmentManager.isStarted() || desiredState == STATE_ATTACHED;
+                return !fragmentManager.isStarted() && desiredState == STATE_ATTACHED;
             }
 
             @Override
@@ -618,7 +618,7 @@ public abstract class Fragment {
         return results.get(id);
     }
 
-    public boolean onNavigate(Class<? extends Fragment> fragment) {
+    public boolean onNavigate(Fragment fragment, TransactionMode mode) {
         return false;
     }
 }

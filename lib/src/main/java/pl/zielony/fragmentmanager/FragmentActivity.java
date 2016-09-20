@@ -40,8 +40,16 @@ public class FragmentActivity extends AppCompatActivity {
         fragmentManager.upTraverse();
     }
 
-    public void navigate(FragmentRoute route){
+    public void navigate(FragmentRoute route) {
+        FragmentRoute.RouteStep step = route.getStep();
+        if (step.fragment == null)
+            step.fragment = Fragment.instantiate(step.klass, this);
+        onNavigate(step.fragment, step.mode);
         fragmentManager.navigate(route);
+    }
+
+    protected boolean onNavigate(Fragment fragment, TransactionMode mode) {
+        return false;
     }
 
     @Override
