@@ -26,18 +26,12 @@ public class FragmentManager {
     private final Activity activity;
     List<FragmentTransaction> backstack = new ArrayList<>();
     private List<FragmentState> activeStates = new ArrayList<>();
-    private FragmentManager parent;
     private FragmentRootView root;
     private boolean started = false;
     private boolean resumed = false;
 
     public FragmentManager(Activity activity) {
         this.activity = activity;
-    }
-
-    public FragmentManager(FragmentManager parent) {
-        this.activity = parent.getActivity();
-        this.parent = parent;
     }
 
     // -------------------
@@ -505,6 +499,12 @@ public class FragmentManager {
             throw new InvalidTransactionException("Unable to find layout (id: " + transaction.layoutId + ", tag: " + transaction.tag + ")");
         if (!(v instanceof ViewGroup))
             throw new InvalidTransactionException("Not a ViewGroup (id: " + transaction.layoutId + ", tag: " + transaction.tag + ")");
+        for (FragmentState fs : activeStates) {
+            if (fs.getFragment().getView().findViewById(transaction.layoutId) != null)
+                throw new InvalidTransactionException("Layout (id: " + transaction.layoutId + ", tag: " + transaction.tag + ") is not a child of this fragment. Use child fragment manager instead");
+            if (fs.getFragment().getView().findViewWithTag(transaction.tag) != null)
+                throw new InvalidTransactionException("Layout (id: " + transaction.layoutId + ", tag: " + transaction.tag + ") is not a child of this fragment. Use child fragment manager instead");
+        }
         return (ViewGroup) v;
     }
 
@@ -544,16 +544,22 @@ public class FragmentManager {
         return null;
     }
 
-    public FragmentManager getParent() {
-        return parent;
-    }
-
     public FragmentRootView getRootView() {
         return root;
     }
 
     public void setRoot(FragmentRootView root) {
         this.root = root;
+    }
+
+    public void navigate(FragmentRoute route){
+        Class<? extends Fragment> fragment = route.getFragment();
+        for(FragmentState state:activeStates){
+            if(state.getFragment().onNavigate(fragment)){
+                state.getFragment().getChildFragmentManager().navigate(route);
+                return;
+            }
+        }
     }
 
     public void onStart() {

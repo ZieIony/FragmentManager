@@ -176,7 +176,7 @@ public abstract class Fragment {
     void setFragmentManager(FragmentManager manager) {
         this.activity = manager.getActivity();
         this.fragmentManager = manager;
-        childFragmentManager = new FragmentManager(fragmentManager);
+        childFragmentManager = new FragmentManager(activity);
         childFragmentManager.setRoot(rootView);
     }
 
@@ -609,11 +609,16 @@ public abstract class Fragment {
 
     /**
      * Gets and removes the result
+     *
      * @param id
      * @return
      */
     public static Bundle getResult(int id) {
         results.remove(id);
         return results.get(id);
+    }
+
+    public boolean onNavigate(Class<? extends Fragment> fragment) {
+        return false;
     }
 }

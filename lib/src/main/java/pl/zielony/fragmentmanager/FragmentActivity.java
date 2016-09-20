@@ -40,6 +40,10 @@ public class FragmentActivity extends AppCompatActivity {
         fragmentManager.upTraverse();
     }
 
+    public void navigate(FragmentRoute route){
+        fragmentManager.navigate(route);
+    }
+
     @Override
     protected void onSaveInstanceState(Bundle outState) {
         super.onSaveInstanceState(outState);
