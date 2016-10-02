@@ -29,16 +29,14 @@ public class DefaultFragmentAnimator implements FragmentAnimator {
                 ViewHelper.setScaleY(view, value);
             }
         });
-        animator.start();
-        return animator;
+        return null;
     }
 
     public Animator animateStop(Fragment fragment) {
         ValueAnimator animator = ValueAnimator.ofFloat(1.1f, 1);
         animator.setDuration(DEFAULT_ANIMATION_DURATION);
         animator.setInterpolator(new DecelerateInterpolator());
-        animator.start();
-        return animator;
+        return null;
     }
 
     public Animator animateRemove(Fragment fragment) {
@@ -56,8 +54,7 @@ public class DefaultFragmentAnimator implements FragmentAnimator {
                 ViewHelper.setScaleY(view, value);
             }
         });
-        animator.start();
-        return animator;
+        return null;
     }
 
     public Animator animateStart(Fragment fragment) {

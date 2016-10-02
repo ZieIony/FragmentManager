@@ -30,20 +30,14 @@
         <FrameLayout
             android:layout_width="match_parent"
             android:layout_height="match_parent"
+            android:background="#ff0000ff"
             android:tag="container" />
     </carbon.widget.LinearLayout>
 
-    <carbon.widget.LinearLayout
+    <carbon.widget.FrameLayout
+        android:id="@+id/drawer"
         android:layout_width="240dp"
         android:layout_height="match_parent"
         android:layout_gravity="start"
-        android:background="#ffffffff"
-        android:orientation="vertical">
-
-        <carbon.widget.Button
-            android:id="@+id/popbackstack"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="clear" />
-    </carbon.widget.LinearLayout>
+        android:background="#ff0000ff" />
 </carbon.widget.DrawerLayout>

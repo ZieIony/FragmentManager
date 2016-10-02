@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical">
+
+    <carbon.widget.Button
+        android:layout_margin="@dimen/carbon_marginHalf"
+        android:id="@+id/popbackstack"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="clear" />
+
+    <carbon.widget.Button
+        android:id="@+id/main"
+        android:text="main"
+        android:layout_margin="@dimen/carbon_marginHalf"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content" />
+
+</LinearLayout>

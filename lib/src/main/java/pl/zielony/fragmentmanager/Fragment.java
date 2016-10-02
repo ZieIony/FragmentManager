@@ -9,6 +9,7 @@ import android.os.Parcelable;
 import android.support.annotation.NonNull;
 import android.util.SparseArray;
 import android.view.KeyEvent;
+import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 
@@ -46,7 +47,6 @@ public abstract class Fragment {
     private Handler handler;
     private FragmentManager fragmentManager;
     private FragmentManager childFragmentManager;
-    private Fragment parent;
 
     private int target = NO_TARGET;
     private static SparseArray<Bundle> results = new SparseArray<>();
@@ -66,6 +66,7 @@ public abstract class Fragment {
 
     public Fragment() {
         stateMachine = new StateMachine();
+        stateMachine.fragment = this;
         annotation = getClass().getAnnotation(FragmentAnnotation.class);
         if (annotation != null) {
             pooling = annotation.pooling();
@@ -92,7 +93,7 @@ public abstract class Fragment {
         stateMachine.addEdge(STATE_CREATED, STATE_ATTACHED, new EdgeListener() {
             @Override
             public boolean canChangeState() {
-                return rootView.isAttached() && rootView.getWidth() > 0 && rootView.getHeight() > 0;
+                return rootView.isAttached();
             }
 
             @Override
@@ -129,7 +130,7 @@ public abstract class Fragment {
         stateMachine.addEdge(STATE_RESUMED, STATE_STARTED, new EdgeListener() {
             @Override
             public boolean canChangeState() {
-                return !fragmentManager.isResumed() && desiredState == STATE_STARTED ;
+                return desiredState == STATE_STARTED;
             }
 
             @Override
@@ -141,7 +142,7 @@ public abstract class Fragment {
         stateMachine.addEdge(STATE_STARTED, STATE_ATTACHED, new EdgeListener() {
             @Override
             public boolean canChangeState() {
-                return !fragmentManager.isStarted() && desiredState == STATE_ATTACHED;
+                return desiredState == STATE_ATTACHED;
             }
 
             @Override
@@ -163,16 +164,6 @@ public abstract class Fragment {
         });
     }
 
-    void clear() {
-        handler = null;
-        childFragmentManager = null;
-        id = -1;
-        activity = null;
-        fragmentManager = null;
-        fresh = true;
-        stateMachine.resetState();
-    }
-
     void setFragmentManager(FragmentManager manager) {
         this.activity = manager.getActivity();
         this.fragmentManager = manager;
@@ -180,7 +171,7 @@ public abstract class Fragment {
         childFragmentManager.setRoot(rootView);
     }
 
-    private void init(Context context) {
+    private void create(Context context) {
         this.context = context;
         handler = new Handler();
         id = idSequence++;
@@ -197,8 +188,7 @@ public abstract class Fragment {
             rootView.addOnAttachStateChangeListener(new FragmentRootView.OnAttachStateChangeListener() {
                 @Override
                 public void onViewAttachedToWindow(View v) {
-                    if (rootView.getWidth() > 0 && rootView.getHeight() > 0)
-                        stateMachine.update();
+                    stateMachine.update();
                 }
 
                 @Override
@@ -219,7 +209,7 @@ public abstract class Fragment {
     }
 
     protected View onCreateView() {
-        return View.inflate(getContext(), getViewResId(), null);
+        return LayoutInflater.from(getContext()).inflate(getViewResId(), rootView, false);
     }
 
     protected int getViewResId() {
@@ -245,6 +235,7 @@ public abstract class Fragment {
     public void start() {
         desiredState = STATE_STARTED;
         stateMachine.update();
+        childFragmentManager.onStart();
     }
 
     protected void onStart(boolean freshStart) {
@@ -253,12 +244,14 @@ public abstract class Fragment {
     public void resume() {
         desiredState = STATE_RESUMED;
         stateMachine.update();
+        childFragmentManager.onResume();
     }
 
     protected void onResume() {
     }
 
     public void pause() {
+        childFragmentManager.onPause();
         desiredState = STATE_STARTED;
         stateMachine.update();
     }
@@ -267,6 +260,7 @@ public abstract class Fragment {
     }
 
     public void stop() {
+        childFragmentManager.onStop();
         desiredState = STATE_ATTACHED;
         stateMachine.update();
     }
@@ -276,6 +270,26 @@ public abstract class Fragment {
 
     public boolean isAttached() {
         return stateMachine.getState() == STATE_ATTACHED || stateMachine.getState() == STATE_STARTED || stateMachine.getState() == STATE_RESUMED;
+    }
+
+    public void detach() {
+        childFragmentManager.onDetach();
+        view.setAnimation(null);
+        ((ViewGroup) rootView.getParent()).removeView(rootView);
+    }
+
+    public boolean isCreated() {
+        return stateMachine.getState() != StateMachine.STATE_NEW;
+    }
+
+    public void destroy(){
+        handler = null;
+        childFragmentManager = null;
+        id = -1;
+        activity = null;
+        fragmentManager = null;
+        fresh = true;
+        stateMachine.resetState();
     }
 
     public boolean isStarted() {
@@ -438,71 +452,61 @@ public abstract class Fragment {
         return activity.getString(resId, args);
     }
 
-    public <T extends Fragment> FragmentTransaction add(T fragment, int id, TransactionMode mode) {
-        fragment.setParent(this);
-        return childFragmentManager.add(fragment, id, mode);
+    public <T extends Fragment> void add(T fragment, int id, TransactionMode mode) {
+        childFragmentManager.add(fragment, id, mode);
     }
 
-    public <T extends Fragment> FragmentTransaction add(T fragment, String tag, TransactionMode mode) {
-        fragment.setParent(this);
-        return childFragmentManager.add(fragment, tag, mode);
+    public <T extends Fragment> void add(T fragment, String tag, TransactionMode mode) {
+        childFragmentManager.add(fragment, tag, mode);
     }
 
-    public <T extends Fragment> FragmentTransaction add(Class<T> fragmentClass, int id, TransactionMode mode) {
+    public <T extends Fragment> void add(Class<T> fragmentClass, int id, TransactionMode mode) {
         T fragment = Fragment.instantiate(fragmentClass, activity);
-        fragment.setParent(this);
-        return childFragmentManager.add(fragment, id, mode);
+        childFragmentManager.add(fragment, id, mode);
     }
 
-    public <T extends Fragment> FragmentTransaction add(Class<T> fragmentClass, String tag, TransactionMode mode) {
+    public <T extends Fragment> void add(Class<T> fragmentClass, String tag, TransactionMode mode) {
         T fragment = Fragment.instantiate(fragmentClass, activity);
-        fragment.setParent(this);
-        return childFragmentManager.add(fragment, tag, mode);
+        childFragmentManager.add(fragment, tag, mode);
     }
 
-    public <T extends Fragment> FragmentTransaction replace(T fragment, int id, TransactionMode mode) {
-        fragment.setParent(this);
-        return childFragmentManager.replace(fragment, id, mode);
+    public <T extends Fragment> void replace(T fragment, int id, TransactionMode mode) {
+        childFragmentManager.replace(fragment, id, mode);
     }
 
-    public <T extends Fragment> FragmentTransaction replace(T fragment, String tag, TransactionMode mode) {
-        fragment.setParent(this);
-        return childFragmentManager.replace(fragment, tag, mode);
+    public <T extends Fragment> void replace(T fragment, String tag, TransactionMode mode) {
+        childFragmentManager.replace(fragment, tag, mode);
     }
 
-    public <T extends Fragment, T2 extends Fragment> FragmentTransaction replace(T2 removeFragment, T addFragment, TransactionMode mode) {
-        addFragment.setParent(this);
-        return childFragmentManager.replace(removeFragment, addFragment, mode);
+    public <T extends Fragment, T2 extends Fragment> void replace(T2 removeFragment, T addFragment, TransactionMode mode) {
+        childFragmentManager.replace(removeFragment, addFragment, mode);
     }
 
-    public <T extends Fragment> FragmentTransaction replace(Class<T> fragmentClass, int id, TransactionMode mode) {
+    public <T extends Fragment> void replace(Class<T> fragmentClass, int id, TransactionMode mode) {
         T fragment = Fragment.instantiate(fragmentClass, activity);
-        fragment.setParent(this);
-        return childFragmentManager.replace(fragment, id, mode);
+        childFragmentManager.replace(fragment, id, mode);
     }
 
-    public <T extends Fragment, T2 extends Fragment> FragmentTransaction replace(T2 removeFragment, Class<T> fragmentClass, TransactionMode mode) {
+    public <T extends Fragment, T2 extends Fragment> void replace(T2 removeFragment, Class<T> fragmentClass, TransactionMode mode) {
         T fragment = Fragment.instantiate(fragmentClass, activity);
-        fragment.setParent(this);
-        return childFragmentManager.replace(removeFragment, fragment, mode);
+        childFragmentManager.replace(removeFragment, fragment, mode);
     }
 
-    public <T extends Fragment> FragmentTransaction replace(Class<T> fragmentClass, String tag, TransactionMode mode) {
+    public <T extends Fragment> void replace(Class<T> fragmentClass, String tag, TransactionMode mode) {
         T fragment = Fragment.instantiate(fragmentClass, activity);
-        fragment.setParent(this);
-        return childFragmentManager.replace(fragment, tag, mode);
+        childFragmentManager.replace(fragment, tag, mode);
     }
 
-    public FragmentTransaction remove(int id, TransactionMode mode) {
-        return childFragmentManager.remove(id, mode);
+    public void remove(int id, TransactionMode mode) {
+        childFragmentManager.remove(id, mode);
     }
 
-    public FragmentTransaction remove(String tag, TransactionMode mode) {
-        return childFragmentManager.remove(tag, mode);
+    public void remove(String tag, TransactionMode mode) {
+        childFragmentManager.remove(tag, mode);
     }
 
-    public <T extends Fragment> FragmentTransaction remove(T fragment, TransactionMode mode) {
-        return childFragmentManager.remove(fragment, mode);
+    public <T extends Fragment> void remove(T fragment, TransactionMode mode) {
+        childFragmentManager.remove(fragment, mode);
     }
 
     public boolean back() {
@@ -519,14 +523,6 @@ public abstract class Fragment {
 
     public boolean hasUp() {
         return childFragmentManager.hasUp();
-    }
-
-    public Fragment getParent() {
-        return parent;
-    }
-
-    public void setParent(Fragment parent) {
-        this.parent = parent;
     }
 
     public int getId() {
@@ -574,14 +570,14 @@ public abstract class Fragment {
     public static <T extends Fragment> T instantiate(Class<T> fragmentClass, Context context) {
         Fragment fromPool = fragmentPool.remove(fragmentClass);
         if (fromPool != null) {
-            fromPool.init(context);
+            fromPool.create(context);
             return (T) fromPool;
         }
 
         Fragment fragment;
         try {
             fragment = fragmentClass.getConstructor().newInstance();
-            fragment.init(context);
+            fragment.create(context);
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
@@ -601,6 +597,11 @@ public abstract class Fragment {
             return;
         if (!fragmentPool.containsKey(fragment.getClass()))
             fragmentPool.put(fragment.getClass(), fragment);
+    }
+
+    // wyczyść basen :D
+    public static void clearPool() {
+        fragmentPool.clear();
     }
 
     public int getTarget() {

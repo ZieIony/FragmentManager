@@ -7,6 +7,10 @@ import java.util.List;
  * Created by Marcin on 2016-09-20.
  */
 public class FragmentRoute {
+    public int length() {
+        return fragments.size();
+    }
+
     static class RouteStep {
         Class<? extends Fragment> klass;
         Fragment fragment;
@@ -41,7 +45,7 @@ public class FragmentRoute {
         fragments.add(new RouteStep(fragment, mode));
     }
 
-    RouteStep getStep() {
+    RouteStep removeStep() {
         return fragments.remove(0);
     }
 }

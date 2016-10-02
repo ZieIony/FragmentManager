@@ -4,8 +4,8 @@ import android.view.View;
 
 import carbon.widget.Toolbar;
 import pl.zielony.fragmentmanager.Fragment;
-import pl.zielony.fragmentmanager.TransactionMode;
 import pl.zielony.fragmentmanager.FragmentAnnotation;
+import pl.zielony.fragmentmanager.TransactionMode;
 
 /**
  * Created by Marcin on 2015-12-08.
@@ -17,14 +17,14 @@ public class MainFragment extends Fragment {
         findViewById(R.id.button1).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                getChildFragmentManager().replace(Fragment1.class, "container", TransactionMode.Push).execute();
+                getChildFragmentManager().replace(RedFragment.class, "container", TransactionMode.Push);
             }
         });
 
         findViewById(R.id.button2).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                getChildFragmentManager().replace(Fragment2.class, "container", TransactionMode.Push).execute();
+                getChildFragmentManager().replace(PerryListFragment.class, "container", TransactionMode.Push);
             }
         });
 
@@ -44,7 +44,9 @@ public class MainFragment extends Fragment {
     @Override
     protected void onStart(boolean fresh) {
         super.onStart(fresh);
-        if (fresh)
-            getChildFragmentManager().add(Fragment1.class, "container", TransactionMode.Join).execute();
+        if (fresh) {
+            add(RedFragment.class, "container", TransactionMode.Join);
+            add(DrawerFragment.class, R.id.drawer, TransactionMode.Join);
+        }
     }
 }

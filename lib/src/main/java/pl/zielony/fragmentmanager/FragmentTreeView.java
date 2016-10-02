@@ -7,6 +7,7 @@ import android.graphics.Color;
 import android.graphics.Paint;
 import android.os.Build;
 import android.util.AttributeSet;
+import android.util.Log;
 import android.view.View;
 
 import java.util.List;
@@ -44,19 +45,24 @@ public class FragmentTreeView extends View {
     @Override
     public void draw(Canvas canvas) {
         super.draw(canvas);
+        if (fragmentManager == null) {
+            Log.e(getClass().getSimpleName(), "fragment manager cannot be null!");
+            return;
+        }
         int y = 20, x = 5;
         paint.setTextSize(14);
         paint.setColor(Color.BLACK);
-        drawManager(canvas, y, x, fragmentManager);
+        drawManager(canvas, x, y, fragmentManager);
     }
 
-    private void drawManager(Canvas canvas, int y, int x, FragmentManager manager) {
+    private int drawManager(Canvas canvas, int x, int y, FragmentManager manager) {
         List<Fragment> fragments = manager.getFragments();
         for (Fragment f : fragments) {
             canvas.drawText(f.getClass().getSimpleName(), x, y, paint);
             y += step;
-            drawManager(canvas, y, x + step, f.getChildFragmentManager());
+            y = drawManager(canvas, x + step, y, f.getChildFragmentManager());
         }
+        return y;
     }
 
 }

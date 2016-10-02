@@ -12,12 +12,12 @@ import pl.zielony.fragmentmanager.FragmentAnnotation;
 /**
  * Created by Marcin on 2015-12-08.
  */
-@FragmentAnnotation(layout = R.layout.fragment1)
-public class Fragment1 extends Fragment {
+@FragmentAnnotation(layout = R.layout.fragment_red)
+public class RedFragment extends Fragment {
 
     @Override
     protected void onCreate() {
-        View view = getRootView();
+        View view = getView();
         final EditText et = (EditText) view.findViewById(R.id.et);
         final TextView copy = (TextView) view.findViewById(R.id.copy);
         final SparseArray<Parcelable> container = new SparseArray<Parcelable>();

@@ -14,10 +14,10 @@ class FragmentState {
     private Fragment fragment;
     int layoutId;
     String tag;
-    private Bundle fragmentState;
+    private Bundle state;
 
     FragmentState() {
-        fragmentState = new Bundle();
+        state = new Bundle();
     }
 
     FragmentState(Fragment fragment, int layoutId, String tag) {
@@ -25,14 +25,14 @@ class FragmentState {
         this.fragmentClass = fragment.getClass();
         this.layoutId = layoutId;
         this.tag = tag;
-        fragmentState = new Bundle();
+        state = new Bundle();
     }
 
     void save(Bundle bundle) {
         bundle.putString(CLASS, fragmentClass.getName());
         bundle.putInt(ID, layoutId);
         bundle.putString(TAG, tag);
-        bundle.putBundle(FRAGMENT, fragmentState);
+        bundle.putBundle(FRAGMENT, state);
     }
 
     void restore(Bundle bundle) {
@@ -40,7 +40,7 @@ class FragmentState {
             fragmentClass = (Class<? extends Fragment>) Class.forName(bundle.getString(CLASS));
             layoutId = bundle.getInt(ID);
             tag = bundle.getString(TAG);
-            fragmentState = bundle.getBundle(FRAGMENT);
+            state = bundle.getBundle(FRAGMENT);
         } catch (ClassNotFoundException e) {
             e.printStackTrace();
         }
@@ -54,11 +54,26 @@ class FragmentState {
         fragment = Fragment.instantiate(fragmentClass, context);
     }
 
-    public Bundle getFragmentState() {
-        return fragmentState;
+    public Bundle getState() {
+        return state;
     }
 
     public void clearFragment() {
         fragment = null;
     }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+
+        FragmentState that = (FragmentState) o;
+
+        if (layoutId != that.layoutId) return false;
+        if (fragmentClass != null ? !fragmentClass.equals(that.fragmentClass) : that.fragmentClass != null)
+            return false;
+        return tag != null ? tag.equals(that.tag) : that.tag == null;
+
+    }
+
 }
