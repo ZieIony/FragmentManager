@@ -60,7 +60,7 @@ public class FragmentTreeView extends View {
         for (Fragment f : fragments) {
             canvas.drawText(f.getClass().getSimpleName(), x, y, paint);
             y += step;
-            y = drawManager(canvas, x + step, y, f.getChildFragmentManager());
+            y = drawManager(canvas, x + step, y, f);
         }
         return y;
     }

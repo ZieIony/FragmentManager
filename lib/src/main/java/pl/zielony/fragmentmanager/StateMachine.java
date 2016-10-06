@@ -27,7 +27,7 @@ public class StateMachine {
         state = bundle.getInt(STATE);
     }
 
-    public Fragment fragment;
+    public FragmentManager fragment;
 
     public void setState(int newState) {
         if (!hasEdge(state, newState))

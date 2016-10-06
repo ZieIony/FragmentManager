@@ -1,6 +1,6 @@
 package pl.zielony.fragmentmanager;
 
-import com.nineoldandroids.animation.Animator;
+import pl.zielony.animator.Animator;
 
 /**
  * Created by Marcin on 2016-07-07.

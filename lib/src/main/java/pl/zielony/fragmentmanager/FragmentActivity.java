@@ -60,42 +60,44 @@ public class FragmentActivity extends AppCompatActivity {
     @Override
     protected void onStart() {
         super.onStart();
-        fragmentManager.onStart();
+        fragmentManager.start();
     }
 
     @Override
     protected void onResume() {
         super.onResume();
-        fragmentManager.onResume();
+        fragmentManager.resume();
     }
 
     @Override
     protected void onPause() {
-        fragmentManager.onPause();
+        fragmentManager.pause();
         super.onPause();
     }
 
     @Override
     protected void onStop() {
-        fragmentManager.onStop();
+        fragmentManager.stop();
         super.onStop();
     }
 
     @Override
     protected void onNewIntent(Intent intent) {
         super.onNewIntent(intent);
-        fragmentManager.onNewIntent(intent);
+        fragmentManager.dispatchNewIntent(intent);
     }
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
-        fragmentManager.onActivityResult(requestCode, resultCode, data);
+        fragmentManager.dispatchActivityResult(requestCode, resultCode, data);
     }
 
     @Override
     public boolean dispatchKeyEvent(KeyEvent event) {
-        return fragmentManager.onKeyEvent(event) || super.dispatchKeyEvent(event);
+        if(super.dispatchKeyEvent(event))
+            return true;
+        return fragmentManager.dispatchKeyEvent(event);
     }
 
     @Override

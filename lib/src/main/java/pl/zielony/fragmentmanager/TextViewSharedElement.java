@@ -5,7 +5,6 @@ import android.view.View;
 import android.widget.TextView;
 
 import com.nineoldandroids.animation.ArgbEvaluator;
-import com.nineoldandroids.animation.ValueAnimator;
 
 /**
  * Created by Marcin on 2016-08-08.
@@ -27,11 +26,10 @@ public class TextViewSharedElement extends SharedElement<TextViewKeyFrame, TextV
     }
 
     @Override
-    public void onAnimationUpdate(ValueAnimator animation) {
-        float value = (Float) animation.getAnimatedValue();
-        view.setTextColor((Integer) evaluator.evaluate(value, frameFrom.textColor, frameTo.textColor));
-        view.setTextSize(TypedValue.COMPLEX_UNIT_PX, lerp(frameFrom.textSize, frameTo.textSize, value));
-        super.onAnimationUpdate(animation);
+    public void onUpdate(float interpolation) {
+        view.setTextColor((Integer) evaluator.evaluate(interpolation, frameFrom.textColor, frameTo.textColor));
+        view.setTextSize(TypedValue.COMPLEX_UNIT_PX, lerp(frameFrom.textSize, frameTo.textSize, interpolation));
+        super.onUpdate(interpolation);
     }
 
     protected TextViewKeyFrame setupFrame(View view, int[] containerLocation) {

@@ -6,16 +6,16 @@ import android.view.View;
 import android.view.animation.DecelerateInterpolator;
 import android.view.animation.Interpolator;
 
-import com.nineoldandroids.animation.Animator;
-import com.nineoldandroids.animation.AnimatorListenerAdapter;
-import com.nineoldandroids.animation.ValueAnimator;
-
 import java.util.List;
+
+import pl.zielony.animator.Animator;
+import pl.zielony.animator.AnimatorListenerAdapter;
+import pl.zielony.animator.UpdateListener;
 
 /**
  * Created by Marcin on 2016-06-26.
  */
-public abstract class SharedElement<FrameType extends KeyFrame, ViewType extends View> implements ValueAnimator.AnimatorUpdateListener {
+public abstract class SharedElement<FrameType extends KeyFrame, ViewType extends View> implements UpdateListener {
     private static final String FROM = "from";
     private static final String TO = "to";
     private static final String VIEW_ID = "viewId";
@@ -32,21 +32,20 @@ public abstract class SharedElement<FrameType extends KeyFrame, ViewType extends
     protected FrameType frameTo;
 
     @Override
-    public void onAnimationUpdate(ValueAnimator animation) {
-        float value = (Float) animation.getAnimatedValue();
+    public void onUpdate(float interpolation) {
         Rect rectFrom = frameFrom.rect;
         Rect rectTo = frameTo.rect;
-        view.layout(lerp(rectFrom.left, rectTo.left, value),
-                lerp(rectFrom.top, rectTo.top, value),
-                lerp(rectFrom.right, rectTo.right, value),
-                lerp(rectFrom.bottom, rectTo.bottom, value));
+        view.layout(lerp(rectFrom.left, rectTo.left, interpolation),
+                lerp(rectFrom.top, rectTo.top, interpolation),
+                lerp(rectFrom.right, rectTo.right, interpolation),
+                lerp(rectFrom.bottom, rectTo.bottom, interpolation));
         container.invalidate();
     }
 
     public SharedElement() {
     }
 
-    ValueAnimator start(List<Fragment> fragments, final boolean reverse, final FragmentRootView container) {
+    Animator start(List<Fragment> fragments, final boolean reverse, final FragmentRootView container) {
         this.container = container;
         Fragment fragmentFrom = null, fragmentTo = null;
         for (Fragment f : fragments) {
@@ -66,7 +65,7 @@ public abstract class SharedElement<FrameType extends KeyFrame, ViewType extends
         }
     }
 
-    private ValueAnimator start(Fragment fragmentFrom, Fragment fragmentTo) {
+    private Animator start(Fragment fragmentFrom, Fragment fragmentTo) {
         final FragmentRootView rootFrom = fragmentFrom.getRootView();
         final FragmentRootView rootTo = fragmentTo.getRootView();
 
@@ -81,10 +80,10 @@ public abstract class SharedElement<FrameType extends KeyFrame, ViewType extends
         final ViewType viewTo = (ViewType) rootTo.findViewById(viewId);
         frameTo = setupFrame(viewTo, containerLocation);
 
-        ValueAnimator animator = start(viewFrom, viewTo);
+        Animator animator = start(viewFrom, viewTo);
         animator.addListener(new AnimatorListenerAdapter() {
             @Override
-            public void onAnimationStart(Animator animation) {
+            public void onStart() {
                 rootFrom.setPreventLayout(true);
                 rootTo.setPreventLayout(true);
                 viewFrom.setVisibility(View.INVISIBLE);
@@ -93,7 +92,7 @@ public abstract class SharedElement<FrameType extends KeyFrame, ViewType extends
             }
 
             @Override
-            public void onAnimationEnd(Animator animation) {
+            public void onEnd() {
                 rootFrom.setPreventLayout(false);
                 rootTo.setPreventLayout(false);
                 viewFrom.setVisibility(View.VISIBLE);
@@ -109,14 +108,14 @@ public abstract class SharedElement<FrameType extends KeyFrame, ViewType extends
 
     protected abstract FrameType setupFrame(View view, int[] containerLocation);
 
-    private ValueAnimator start(final ViewType viewFrom, final ViewType viewTo) {
+    private Animator start(final ViewType viewFrom, final ViewType viewTo) {
         this.view = viewTo;
-        ValueAnimator animator = ValueAnimator.ofFloat(0, 1);
+        Animator animator = new Animator();
         animator.setDuration(duration);
         if (interpolator == null)
             interpolator = new DecelerateInterpolator();
         animator.setInterpolator(interpolator);
-        animator.addUpdateListener(this);
+        animator.setUpdateListener(this);
         return animator;
     }
 

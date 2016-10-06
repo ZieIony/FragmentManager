@@ -1,13 +1,14 @@
 package pl.zielony.fragmentmanager;
 
 import android.os.Bundle;
-
-import com.nineoldandroids.animation.Animator;
-import com.nineoldandroids.animation.AnimatorSet;
+import android.os.Handler;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
+
+import pl.zielony.animator.Animator;
+import pl.zielony.animator.AnimatorSet;
 
 /**
  * Created by Marcin on 2015-12-31.
@@ -126,7 +127,7 @@ public class FragmentTransaction {
                     animators.add(animator);
             } else {
                 manager.startState(stateChange.state);
-                Animator animator = manager.getStartAnimation(stateChange.state);
+                Animator animator = manager.prepareAddAnimation(stateChange.state);
                 if (animator != null)
                     animators.add(animator);
             }
@@ -172,13 +173,14 @@ public class FragmentTransaction {
                         if (notAttachedFragments.get() > 0)
                             FragmentTransaction.this.wait();
 
-                        FragmentManager.handler.post(new Runnable() {
+                        Handler handler = FragmentManager.getHandler();
+                        handler.post(new Runnable() {
                             @Override
                             public void run() {
                                 for (SharedElement e : sharedElements)
                                     animators.add(e.start(fragments, reverse, manager.getRootView()));
                                 AnimatorSet set = new AnimatorSet();
-                                set.playTogether(animators);
+                                set.addAll(animators);
                                 set.start();
                             }
                         });

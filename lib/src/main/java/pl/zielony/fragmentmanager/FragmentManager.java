@@ -1,42 +1,163 @@
 package pl.zielony.fragmentmanager;
 
 import android.app.Activity;
+import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.support.annotation.NonNull;
 import android.util.Log;
+import android.util.SparseArray;
 import android.view.KeyEvent;
 import android.view.View;
 import android.view.ViewGroup;
 
-import com.nineoldandroids.animation.Animator;
-import com.nineoldandroids.animation.AnimatorListenerAdapter;
-import com.nineoldandroids.view.ViewHelper;
-
 import java.util.ArrayList;
 import java.util.List;
 
+import pl.zielony.animator.Animator;
+import pl.zielony.animator.AnimatorListenerAdapter;
+
 /**
- * Created by Marcin on 2015-03-20.
+ * Created by Marcin on 2016-10-03.
  */
+
 public class FragmentManager {
     private static final String ACTIVE_STATES = FragmentManager.class.getName() + "fragmentManagerActiveStates";
     private static final String STATES = FragmentManager.class.getName() + "fragmentManagerStates";
     private static final String TRANSACTIONS = FragmentManager.class.getName() + "fragmentManagerTransactions";
 
-    static Handler handler = new Handler(Looper.getMainLooper());
+    public static final int STATE_CREATED = 1;
+    public static final int STATE_ATTACHED = 2;
+    public static final int STATE_STARTED = 3;
+    public static final int STATE_RESUMED = 4;
 
-    private final Activity activity;
+    public static final String HIERARCHY_STATE = "hierarchyState";
+    private static final String TARGET = "target";
+    private static final String ID = "id";
+    private static final String TAG = "tag";
+    private static final String FRESH = "fresh";
+
+    private static final int NO_TARGET = -1;
+
     List<FragmentTransaction> backstack = new ArrayList<>();
     List<FragmentState> activeStates = new ArrayList<>();
     private FragmentRootView root;
-    private boolean started = false;
-    private boolean resumed = false;
+
+    private Activity activity;
+    private Context context;
+    static Handler handler = new Handler(Looper.getMainLooper());
+    private FragmentManager fragmentManager;
+
+    private int target = NO_TARGET;
+    private static SparseArray<Bundle> results = new SparseArray<>();
+
+    private int id;
+    private static int idSequence = 0;
+    private String tag;
+
+    private StateMachine stateMachine;
+    protected int desiredState;
+
+    protected boolean fresh = true;
+
+    public FragmentManager() {
+        init();
+    }
+
+    private void init() {
+        stateMachine = new StateMachine();
+        stateMachine.fragment = this;
+        initStateMachineStates();
+    }
+
+    protected void initStateMachineStates() {
+        StateMachine stateMachine = getStateMachine();
+        stateMachine.addEdge(StateMachine.STATE_NEW, STATE_CREATED, new EdgeListener() {
+            @Override
+            public boolean canChangeState() {
+                return desiredState >= STATE_CREATED;
+            }
+
+            @Override
+            public void onStateChanged() {
+                onCreate();
+            }
+        });
+        stateMachine.addEdge(STATE_CREATED, STATE_ATTACHED, new EdgeListener() {
+            @Override
+            public boolean canChangeState() {
+                return desiredState >= STATE_ATTACHED;
+            }
+
+            @Override
+            public void onStateChanged() {
+                onAttach();
+            }
+        });
+        stateMachine.addEdge(STATE_ATTACHED, STATE_STARTED, new EdgeListener() {
+            @Override
+            public boolean canChangeState() {
+                return desiredState >= STATE_STARTED;
+            }
+
+            @Override
+            public void onStateChanged() {
+                onStart(fresh);
+                fresh = false;
+            }
+        });
+        stateMachine.addEdge(STATE_STARTED, STATE_RESUMED, new EdgeListener() {
+            @Override
+            public boolean canChangeState() {
+                return desiredState == STATE_RESUMED;
+            }
+
+            @Override
+            public void onStateChanged() {
+                onResume();
+            }
+        });
+
+        stateMachine.addEdge(STATE_RESUMED, STATE_STARTED, new EdgeListener() {
+            @Override
+            public boolean canChangeState() {
+                return desiredState <= STATE_STARTED;
+            }
+
+            @Override
+            public void onStateChanged() {
+                onPause();
+            }
+        });
+        stateMachine.addEdge(STATE_STARTED, STATE_ATTACHED, new EdgeListener() {
+            @Override
+            public boolean canChangeState() {
+                return desiredState <= STATE_ATTACHED;
+            }
+
+            @Override
+            public void onStateChanged() {
+                onStop();
+            }
+        });
+        stateMachine.addEdge(STATE_ATTACHED, STATE_CREATED, new EdgeListener() {
+            @Override
+            public boolean canChangeState() {
+                return desiredState == STATE_CREATED;
+            }
+
+            @Override
+            public void onStateChanged() {
+                onDetach();
+            }
+        });
+    }
 
     public FragmentManager(Activity activity) {
         this.activity = activity;
+        init();
     }
 
 
@@ -134,7 +255,7 @@ public class FragmentManager {
 
     public boolean upTraverse() {
         for (int i = activeStates.size() - 1; i >= 0; i--) {
-            if (activeStates.get(i).getFragment().getChildFragmentManager().up())
+            if (activeStates.get(i).getFragment().up())
                 return true;
         }
         if (!hasUp())
@@ -151,7 +272,7 @@ public class FragmentManager {
 
     public boolean up() {
         for (int i = activeStates.size() - 1; i >= 0; i--) {
-            if (activeStates.get(i).getFragment().getChildFragmentManager().up())
+            if (activeStates.get(i).getFragment().upTraverse())
                 return true;
         }
         if (!hasUp())
@@ -173,7 +294,7 @@ public class FragmentManager {
      */
     public boolean backTraverse() {
         for (int i = activeStates.size() - 1; i >= 0; i--) {
-            if (activeStates.get(i).getFragment().getChildFragmentManager().back())
+            if (activeStates.get(i).getFragment().backTraverse())
                 return true;
         }
         return back();
@@ -198,42 +319,6 @@ public class FragmentManager {
         return false;
     }
 
-    Animator getAddAnimation(final FragmentState state) {
-        synchronized (FragmentManager.class) {
-            Fragment fragment = state.getFragment();
-            FragmentRootView rootView = fragment.getRootView();
-            final View view = fragment.getView();
-            Animator animator = fragment.animateAdd();
-            if (animator != null) {
-                //view.setVisibility(View.INVISIBLE);
-                animator.addListener(new LockListenerAdapter(rootView));
-                animator.addListener(new AnimatorListenerAdapter() {
-                    @Override
-                    public void onAnimationStart(Animator animation) {
-                        view.setVisibility(View.VISIBLE);
-                    }
-
-                    @Override
-                    public void onAnimationEnd(Animator animation) {
-                        view.setVisibility(View.VISIBLE);
-                        animateAddFinished(state);
-                        animation.removeListener(this);
-                    }
-                });
-            } else {
-                animateAddFinished(state);
-            }
-            return animator;
-        }
-    }
-
-    private void animateAddFinished(FragmentState state) {
-        synchronized (FragmentManager.class) {
-            if (resumed)
-                state.getFragment().resume();
-        }
-    }
-
     void startState(final FragmentState state) {
         if (state.getFragment() == null)
             state.instantiateFragment(activity);
@@ -242,6 +327,8 @@ public class FragmentManager {
         FragmentRootView rootView = fragment.getRootView();
         if (rootView.getParent() != null || fragment.getFragmentManager() != null)
             throw new IllegalStateException("fragment is already in use");
+        final View view = fragment.getView();
+        view.setVisibility(View.INVISIBLE);
         fragment.setFragmentManager(this);
         synchronized (FragmentManager.class) {
             activeStates.add(state);
@@ -250,41 +337,41 @@ public class FragmentManager {
         container.addView(rootView);
         Bundle fragmentState = state.getState();
         if (!fragmentState.isEmpty()) {
-            fragment.onRestoreState(fragmentState);
+            fragment.restore(fragmentState);
             fragmentState.clear();
         }
         Bundle result = Fragment.getResult(fragment.getId());
         if (result != null)
             fragment.onResult(result);
         synchronized (FragmentManager.class) {
-            if (started)
-                fragment.start();
+            fragment.start();
         }
     }
 
-    Animator getStartAnimation(final FragmentState state) {
+    Animator prepareAddAnimation(final FragmentState state, final Animator animator) {
         Fragment fragment = state.getFragment();
-        FragmentRootView rootView = fragment.getRootView();
         final View view = fragment.getView();
-        ViewHelper.setAlpha(view, 1);
-        Animator animator = fragment.animateStart();
+        if (!isResumed()) {
+            view.setVisibility(View.VISIBLE);
+            resumeState(state);
+            return null;
+        }
         if (animator != null) {
-            //view.setVisibility(View.INVISIBLE);
+            FragmentRootView rootView = fragment.getRootView();
             animator.addListener(new LockListenerAdapter(rootView));
             animator.addListener(new AnimatorListenerAdapter() {
                 @Override
-                public void onAnimationStart(Animator animation) {
+                public void onStart() {
                     view.setVisibility(View.VISIBLE);
                 }
 
                 @Override
-                public void onAnimationEnd(Animator animation) {
-                    view.setVisibility(View.VISIBLE);
+                public void onEnd() {
                     resumeState(state);
-                    animation.removeListener(this);
                 }
             });
         } else {
+            view.setVisibility(View.VISIBLE);
             resumeState(state);
         }
         return animator;
@@ -292,44 +379,31 @@ public class FragmentManager {
 
     private void resumeState(FragmentState state) {
         synchronized (FragmentManager.class) {
-            if (resumed)
-                state.getFragment().resume();
+            state.getFragment().resume();
         }
     }
 
-    Animator getStopAnimation(final FragmentState state) {
+    Animator prepareRemoveAnimation(final FragmentState state, final Animator animator) {
         final Fragment fragment = state.getFragment();
-        final FragmentRootView rootView = fragment.getRootView();
-        final Animator animator = fragment.animateStop();
+        final View view = fragment.getView();
+        if (!isResumed()) {
+            view.setVisibility(View.INVISIBLE);
+            removeState(state);
+            return null;
+        }
         if (animator != null) {
+            final FragmentRootView rootView = fragment.getRootView();
             animator.addListener(new LockListenerAdapter(rootView));
             animator.addListener(new AnimatorListenerAdapter() {
                 @Override
-                public void onAnimationEnd(Animator animation) {
+                public void onEnd() {
+                    view.setVisibility(View.INVISIBLE);
                     removeState(state);
-                    animation.removeListener(this);
+                    animator.removeListener(this);
                 }
             });
         } else {
-            removeState(state);
-        }
-        return animator;
-    }
-
-    Animator getRemoveAnimation(final FragmentState state) {
-        final Fragment fragment = state.getFragment();
-        final FragmentRootView view = fragment.getRootView();
-        Animator animator = fragment.animateRemove();
-        if (animator != null) {
-            animator.addListener(new LockListenerAdapter(view));
-            animator.addListener(new AnimatorListenerAdapter() {
-                @Override
-                public void onAnimationEnd(Animator animation) {
-                    removeState(state);
-                    animation.removeListener(this);
-                }
-            });
-        } else {
+            view.setVisibility(View.INVISIBLE);
             removeState(state);
         }
         return animator;
@@ -342,14 +416,14 @@ public class FragmentManager {
         Log.e("stop state", "[" + fragment.getClass().getSimpleName() + ":" + fragment.hashCode() % 100 + "]");
         if (container == null || !activeStates.contains(state))
             throw new IllegalStateException("fragment's container has to be in use!");
-        fragment.onSaveState(state.getState());
+        fragment.save(state.getState());
         if (fragment.isResumed())
             fragment.pause();
         if (fragment.isStarted())
             fragment.stop();
-        if(fragment.isAttached())
+        if (fragment.isAttached())
             fragment.detach();
-        if(fragment.isCreated())
+        if (fragment.isCreated())
             fragment.destroy();
         synchronized (FragmentManager.class) {
             activeStates.remove(state);
@@ -360,7 +434,7 @@ public class FragmentManager {
 
     public boolean hasBack() {
         for (FragmentState state : activeStates)
-            if (state.getFragment().getChildFragmentManager().hasBack())
+            if (state.getFragment().hasBack())
                 return true;
         for (FragmentTransaction transaction : backstack)
             if (transaction.getMode() != TransactionMode.Join)
@@ -371,69 +445,13 @@ public class FragmentManager {
 
     public boolean hasUp() {
         for (FragmentState state : activeStates)
-            if (state.getFragment().getChildFragmentManager().hasUp())
+            if (state.getFragment().hasUp())
                 return true;
         for (FragmentTransaction transaction : backstack)
             if (transaction.getMode() == TransactionMode.Push)
                 return true;
 
         return false;
-    }
-
-    public void save(Bundle bundle) {
-        List<FragmentState> allStates = new ArrayList<>();
-
-        for (int i = activeStates.size() - 1; i >= 0; i--) {
-            FragmentState state = activeStates.get(i);
-            removeState(state);
-        }
-
-        ArrayList<Bundle> transactionBundles = new ArrayList<>();
-        for (FragmentTransaction transaction : backstack) {
-            Bundle transactionBundle = new Bundle();
-            transaction.save(transactionBundle, allStates);
-            transactionBundles.add(transactionBundle);
-        }
-        bundle.putParcelableArrayList(TRANSACTIONS, transactionBundles);
-
-        ArrayList<Bundle> stateBundles = new ArrayList<>();
-        for (FragmentState state : allStates) {
-            Bundle stateBundle = new Bundle();
-            state.save(stateBundle);
-            stateBundles.add(stateBundle);
-        }
-        bundle.putParcelableArrayList(STATES, stateBundles);
-
-        int[] activeStateIndices = new int[activeStates.size()];
-        for (int i = 0; i < activeStateIndices.length; i++) {
-            activeStateIndices[i] = allStates.indexOf(activeStates.get(i));
-        }
-        bundle.putIntArray(ACTIVE_STATES, activeStateIndices);
-    }
-
-    public void restore(Bundle bundle) {
-        List<FragmentState> allStates = new ArrayList<>();
-
-        ArrayList<Bundle> stateBundles = bundle.getParcelableArrayList(STATES);
-        for (Bundle stateBundle : stateBundles) {
-            FragmentState state = new FragmentState();
-            state.restore(stateBundle);
-            allStates.add(state);
-        }
-
-        int[] activeStateIndices = bundle.getIntArray(ACTIVE_STATES);
-        for (int activeStateIndice : activeStateIndices) {
-            FragmentState state = allStates.get(activeStateIndice);
-            startState(state);
-            resumeState(state);
-        }
-
-        ArrayList<Bundle> transactionBundles = bundle.getParcelableArrayList(TRANSACTIONS);
-        for (Bundle transactionBundle : transactionBundles) {
-            FragmentTransaction transaction = new FragmentTransaction(this);
-            transaction.restore(transactionBundle, allStates);
-            backstack.add(transaction);
-        }
     }
 
     @NonNull
@@ -455,10 +473,6 @@ public class FragmentManager {
                 throw new InvalidTransactionException("Layout (id: " + state.layoutId + ", tag: " + state.tag + ") is not a child of this fragment. Use child fragment manager instead");
         }
         return (ViewGroup) v;
-    }
-
-    public Activity getActivity() {
-        return activity;
     }
 
     public List<Fragment> getFragments() {
@@ -507,49 +521,128 @@ public class FragmentManager {
             step.fragment = Fragment.instantiate(step.klass, activity);
         for (FragmentState state : activeStates) {
             if (state.getFragment().onNavigate(step.fragment, step.mode) && route.length() > 0) {
-                state.getFragment().getChildFragmentManager().navigate(route);
+                state.getFragment().navigate(route);
                 return;
             }
         }
     }
 
-    public void onStart() {
+    protected void onNewIntent(Intent intent) {
+    }
+
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+    }
+
+    public boolean dispatchKeyEvent(KeyEvent event) {
+        if (onKeyEvent(event))
+            return true;
         synchronized (FragmentManager.class) {
-            started = true;
+            List<FragmentState> copy = new ArrayList<>(activeStates);
+            for (FragmentState state : copy)
+                if (state.getFragment().dispatchKeyEvent(event))
+                    return true;
+        }
+        return false;
+    }
+
+    protected boolean onKeyEvent(KeyEvent event) {
+        return false;
+    }
+
+    void setFragmentManager(FragmentManager manager) {
+        this.activity = manager.getActivity();
+        this.fragmentManager = manager;
+    }
+
+    protected void onCreate() {
+    }
+
+    protected void onAttach() {
+    }
+
+    protected void onStart(boolean freshStart) {
+    }
+
+    protected void onResume() {
+    }
+
+    protected void onPause() {
+    }
+
+    protected void onStop() {
+    }
+
+    protected void onDetach() {
+    }
+
+    protected void onDestroy() {
+    }
+
+    protected void create(Context context) {
+        this.context = context;
+        id = idSequence++;
+        stateMachine.update();
+    }
+
+    public void start() {
+        desiredState = STATE_STARTED;
+        stateMachine.update();
+        synchronized (FragmentManager.class) {
             List<FragmentState> copy = new ArrayList<>(activeStates);
             for (FragmentState state : copy)
                 state.getFragment().start();
         }
     }
 
-    public void onResume() {
+    public void resume() {
+        desiredState = STATE_RESUMED;
+        stateMachine.update();
         synchronized (FragmentManager.class) {
-            resumed = true;
             List<FragmentState> copy = new ArrayList<>(activeStates);
             for (FragmentState state : copy)
                 state.getFragment().resume();
         }
     }
 
-    public void onPause() {
+    public void pause() {
         synchronized (FragmentManager.class) {
-            resumed = false;
             List<FragmentState> copy = new ArrayList<>(activeStates);
             for (FragmentState state : copy)
                 state.getFragment().pause();
         }
+        desiredState = STATE_STARTED;
+        stateMachine.update();
     }
 
-    public void onStop() {
+    public void stop() {
         synchronized (FragmentManager.class) {
-            started = false;
             List<FragmentState> copy = new ArrayList<>(activeStates);
             for (FragmentState state : copy)
                 state.getFragment().stop();
         }
+        desiredState = STATE_ATTACHED;
+        stateMachine.update();
     }
 
-    public void onDetach(){
+    public void dispatchNewIntent(Intent intent) {
+        onNewIntent(intent);
+        synchronized (FragmentManager.class) {
+            List<FragmentState> copy = new ArrayList<>(activeStates);
+            for (FragmentState state : copy)
+                state.getFragment().dispatchNewIntent(intent);
+        }
+    }
+
+    public void dispatchActivityResult(int requestCode, int resultCode, Intent data) {
+        onActivityResult(requestCode, resultCode, data);
+        synchronized (FragmentManager.class) {
+            List<FragmentState> copy = new ArrayList<>(activeStates);
+            for (FragmentState state : copy)
+                state.getFragment().dispatchActivityResult(requestCode, resultCode, data);
+        }
+    }
+
+    public void detach() {
         synchronized (FragmentManager.class) {
             List<FragmentState> copy = new ArrayList<>(activeStates);
             for (FragmentState state : copy)
@@ -557,45 +650,177 @@ public class FragmentManager {
         }
     }
 
-    public void onDestroy(){
+    public void destroy() {
         synchronized (FragmentManager.class) {
             List<FragmentState> copy = new ArrayList<>(activeStates);
             for (FragmentState state : copy)
                 state.getFragment().destroy();
         }
+        onDestroy();
+        id = -1;
+        activity = null;
+        fragmentManager = null;
+        fresh = true;
+        stateMachine.resetState();
+    }
+
+    public static Handler getHandler() {
+        return handler;
+    }
+
+    public Activity getActivity() {
+        return activity;
+    }
+
+    public Context getContext() {
+        return context;
+    }
+
+    public FragmentManager getFragmentManager() {
+        return fragmentManager;
+    }
+
+    public void save(Bundle bundle) {
+        List<FragmentState> allStates = new ArrayList<>();
+
+        ArrayList<Bundle> transactionBundles = new ArrayList<>();
+        for (FragmentTransaction transaction : backstack) {
+            Bundle transactionBundle = new Bundle();
+            transaction.save(transactionBundle, allStates);
+            transactionBundles.add(transactionBundle);
+        }
+        bundle.putParcelableArrayList(TRANSACTIONS, transactionBundles);
+
+        ArrayList<Bundle> stateBundles = new ArrayList<>();
+        for (FragmentState state : allStates) {
+            Bundle stateBundle = new Bundle();
+            state.save(stateBundle);
+            stateBundles.add(stateBundle);
+        }
+        bundle.putParcelableArrayList(STATES, stateBundles);
+
+        int[] activeStateIndices = new int[activeStates.size()];
+        for (int i = 0; i < activeStateIndices.length; i++) {
+            activeStateIndices[i] = allStates.indexOf(activeStates.get(i));
+        }
+        bundle.putIntArray(ACTIVE_STATES, activeStateIndices);
+
+        if (target != NO_TARGET)
+            bundle.putInt(TARGET, target);
+        bundle.putInt(ID, id);
+        bundle.putString(TAG, tag);
+        bundle.putBoolean(FRESH, fresh);
+
+        for (int i = activeStates.size() - 1; i >= 0; i--) {
+            FragmentState state = activeStates.get(i);
+            removeState(state);
+        }
+    }
+
+    public void restore(Bundle bundle) {
+        List<FragmentState> allStates = new ArrayList<>();
+
+        ArrayList<Bundle> stateBundles = bundle.getParcelableArrayList(STATES);
+        for (Bundle stateBundle : stateBundles) {
+            FragmentState state = new FragmentState();
+            state.restore(stateBundle);
+            allStates.add(state);
+        }
+
+        int[] activeStateIndices = bundle.getIntArray(ACTIVE_STATES);
+        for (int activeStateIndice : activeStateIndices) {
+            FragmentState state = allStates.get(activeStateIndice);
+            startState(state);
+            resumeState(state);
+        }
+
+        ArrayList<Bundle> transactionBundles = bundle.getParcelableArrayList(TRANSACTIONS);
+        for (Bundle transactionBundle : transactionBundles) {
+            FragmentTransaction transaction = new FragmentTransaction(this);
+            transaction.restore(transactionBundle, allStates);
+            backstack.add(transaction);
+        }
+
+        if (bundle.containsKey(TARGET))
+            target = bundle.getInt(TARGET);
+        id = bundle.getInt(ID);
+        tag = bundle.getString(TAG);
+        fresh = bundle.getBoolean(FRESH);
+    }
+
+    public void onResult(Bundle result) {
+    }
+
+    public void setTargetFragment(FragmentManager target) {
+        this.target = target.id;
+    }
+
+    public void setResult(Bundle result) {
+        if (target == NO_TARGET)
+            return;
+        results.append(target, result);
+    }
+
+    public String getString(int resId) {
+        return activity.getString(resId);
+    }
+
+    public String getString(int resId, Object... args) {
+        return activity.getString(resId, args);
+    }
+
+    public int getId() {
+        return id;
+    }
+
+    public String getTag() {
+        return tag;
+    }
+
+    public void setTag(String tag) {
+        this.tag = tag;
+    }
+
+    public void setOnStateChangeListener(OnStateChangeListener stateListener) {
+        stateMachine.setOnStateChangeListener(stateListener);
+    }
+
+    public int getTarget() {
+        return target;
+    }
+
+    /**
+     * Gets and removes the result
+     *
+     * @param id
+     * @return
+     */
+    public static Bundle getResult(int id) {
+        results.remove(id);
+        return results.get(id);
+    }
+
+    public boolean onNavigate(Fragment fragment, TransactionMode mode) {
+        return false;
+    }
+
+    public StateMachine getStateMachine() {
+        return stateMachine;
+    }
+
+    public boolean isCreated() {
+        return stateMachine.getState() >= STATE_CREATED;
+    }
+
+    public boolean isAttached() {
+        return stateMachine.getState() >= STATE_ATTACHED;
     }
 
     public boolean isStarted() {
-        return started;
+        return stateMachine.getState() >= STATE_STARTED;
     }
 
     public boolean isResumed() {
-        return resumed;
-    }
-
-    public void onNewIntent(Intent intent) {
-        synchronized (FragmentManager.class) {
-            List<FragmentState> copy = new ArrayList<>(activeStates);
-            for (FragmentState state : copy)
-                state.getFragment().onNewIntent(intent);
-        }
-    }
-
-    public void onActivityResult(int requestCode, int resultCode, Intent data) {
-        synchronized (FragmentManager.class) {
-            List<FragmentState> copy = new ArrayList<>(activeStates);
-            for (FragmentState state : copy)
-                state.getFragment().onActivityResult(requestCode, resultCode, data);
-        }
-    }
-
-    public boolean onKeyEvent(KeyEvent event) {
-        synchronized (FragmentManager.class) {
-            List<FragmentState> copy = new ArrayList<>(activeStates);
-            for (FragmentState state : copy)
-                if (state.getFragment().onKeyEvent(event))
-                    return true;
-        }
-        return false;
+        return stateMachine.getState() >= STATE_RESUMED;
     }
 }

@@ -1,11 +1,11 @@
 package pl.zielony.fragmentmanager;
 
-import com.nineoldandroids.animation.Animator;
+import pl.zielony.animator.AnimatorListenerAdapter;
 
 /**
  * Created by Marcin on 2016-06-26.
  */
-public class LockListenerAdapter implements Animator.AnimatorListener {
+public class LockListenerAdapter extends AnimatorListenerAdapter {
     private FragmentRootView view;
 
     public LockListenerAdapter(FragmentRootView view) {
@@ -13,24 +13,17 @@ public class LockListenerAdapter implements Animator.AnimatorListener {
     }
 
     @Override
-    public void onAnimationCancel(Animator animation) {
+    public void onCancel() {
         view.setLocked(false);
-        animation.removeListener(this);
     }
 
     @Override
-    public void onAnimationRepeat(Animator animation) {
-
-    }
-
-    @Override
-    public void onAnimationStart(Animator animation) {
+    public void onStart() {
         view.setLocked(true);
     }
 
     @Override
-    public void onAnimationEnd(Animator animation) {
+    public void onEnd() {
         view.setLocked(false);
-        animation.removeListener(this);
     }
 }

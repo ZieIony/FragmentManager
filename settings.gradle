@@ -1,1 +1,1 @@
-include ':lib', ':test', ':carbon'
+include ':lib', ':test', ':carbon', ':animator'

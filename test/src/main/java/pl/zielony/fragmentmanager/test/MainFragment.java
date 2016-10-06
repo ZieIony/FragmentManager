@@ -17,14 +17,14 @@ public class MainFragment extends Fragment {
         findViewById(R.id.button1).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                getChildFragmentManager().replace(RedFragment.class, "container", TransactionMode.Push);
+                replace(RedFragment.class, "container", TransactionMode.Push);
             }
         });
 
         findViewById(R.id.button2).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                getChildFragmentManager().replace(PerryListFragment.class, "container", TransactionMode.Push);
+                replace(PerryListFragment.class, "container", TransactionMode.Push);
             }
         });
 
