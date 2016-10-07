@@ -25,7 +25,7 @@ public class DefaultFragmentAnimator implements FragmentAnimator {
             @Override
             public void onUpdate(float interpolation) {
                 ViewHelper.setAlpha(view, interpolation);
-                float value = 0.8f + 0.2f * interpolation;
+                float value = 1.2f - 0.2f * interpolation;
                 ViewHelper.setScaleX(view, value);
                 ViewHelper.setScaleY(view, value);
             }

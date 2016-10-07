@@ -72,39 +72,18 @@ public class FragmentTransaction {
         List<Animator> animators = new ArrayList<>();
         List<Fragment> fragments = new ArrayList<>(manager.getFragments());
 
-        if (mode == TransactionMode.Join && !manager.backstack.isEmpty()) {
-            for (StateChange newChange : changes) {
-                FragmentState newState = newChange.state;
-
-                FragmentTransaction transaction = manager.backstack.get(manager.backstack.size() - 1);
-
-                for (int i = transaction.changes.size() - 1; i >= 0; i--) {
-                    StateChange backstackChange = transaction.changes.get(i);
-                    FragmentState backstackState = backstackChange.state;
-
-                    if (newState.equals(backstackState)) {
-                        Animator animator = manager.getStopAnimation(backstackState);
-                        if (animator != null)
-                            animators.add(animator);
-
-                        transaction.changes.remove(i);
-                    }
-                }
-
-                if (transaction.changes.isEmpty())
-                    manager.backstack.remove(manager.backstack.size() - 1);
-            }
-        }
+        if (mode == TransactionMode.Join && !manager.backstack.isEmpty())
+            removeJoinedFragments(animators);
 
         manager.backstack.add(this);
         for (StateChange stateChange : changes) {
             if (stateChange.change == StateChange.Change.Add) {
                 manager.startState(stateChange.state);
-                Animator animator = manager.getAddAnimation(stateChange.state);
+                Animator animator = manager.prepareAddAnimation(stateChange.state, stateChange.state.getFragment().animateAdd());
                 if (animator != null)
                     animators.add(animator);
             } else {
-                Animator animator = manager.getStopAnimation(stateChange.state);
+                Animator animator = manager.prepareRemoveAnimation(stateChange.state, stateChange.state.getFragment().animateStop());
                 if (animator != null)
                     animators.add(animator);
             }
@@ -115,6 +94,30 @@ public class FragmentTransaction {
         runAnimations(animators, fragments, false);
     }
 
+    private void removeJoinedFragments(List<Animator> animators) {
+        for (StateChange newChange : changes) {
+            FragmentState newState = newChange.state;
+
+            FragmentTransaction transaction = manager.backstack.get(manager.backstack.size() - 1);
+
+            for (int i = transaction.changes.size() - 1; i >= 0; i--) {
+                StateChange backstackChange = transaction.changes.get(i);
+                FragmentState backstackState = backstackChange.state;
+
+                if (newState.equals(backstackState)) {
+                    Animator animator = manager.prepareRemoveAnimation(backstackState, backstackState.getFragment().animateStop());
+                    if (animator != null)
+                        animators.add(animator);
+
+                    transaction.changes.remove(i);
+                }
+            }
+
+            if (transaction.changes.isEmpty())
+                manager.backstack.remove(manager.backstack.size() - 1);
+        }
+    }
+
     public void undo() {
         final List<Animator> animators = new ArrayList<>();
         List<Fragment> fragments = new ArrayList<>(manager.getFragments());
@@ -122,12 +125,12 @@ public class FragmentTransaction {
         for (int i = changes.size() - 1; i >= 0; i--) {
             StateChange stateChange = changes.get(i);
             if (stateChange.change == StateChange.Change.Add) {
-                Animator animator = manager.getRemoveAnimation(stateChange.state);
+                Animator animator = manager.prepareRemoveAnimation(stateChange.state, stateChange.state.getFragment().animateRemove());
                 if (animator != null)
                     animators.add(animator);
             } else {
                 manager.startState(stateChange.state);
-                Animator animator = manager.prepareAddAnimation(stateChange.state);
+                Animator animator = manager.prepareAddAnimation(stateChange.state, stateChange.state.getFragment().animateStart());
                 if (animator != null)
                     animators.add(animator);
             }

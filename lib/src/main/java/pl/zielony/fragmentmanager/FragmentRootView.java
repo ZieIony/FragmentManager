@@ -3,7 +3,6 @@ package pl.zielony.fragmentmanager;
 import android.annotation.TargetApi;
 import android.content.Context;
 import android.graphics.Canvas;
-import android.graphics.Color;
 import android.os.Build;
 import android.util.AttributeSet;
 import android.view.KeyEvent;
@@ -57,12 +56,10 @@ public class FragmentRootView extends FrameLayout {
 
     public FragmentRootView(Context context) {
         super(context);
-        setBackgroundColor(Color.RED);
     }
 
     public FragmentRootView(Context context, AttributeSet attrs) {
         super(context, attrs);
-        setBackgroundColor(Color.RED);
     }
 
     public FragmentRootView(Context context, AttributeSet attrs, int defStyleAttr) {
