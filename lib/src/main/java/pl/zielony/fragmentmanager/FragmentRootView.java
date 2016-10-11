@@ -28,6 +28,8 @@ public class FragmentRootView extends FrameLayout {
 
     private boolean attached = false;
 
+    LockListenerAdapter lockListenerAdapter = new LockListenerAdapter(this);
+
     class ViewDesc {
         private final int left, right, top, bottom;
 
@@ -164,5 +166,14 @@ public class FragmentRootView extends FrameLayout {
 
     public void setPreventLayout(boolean preventLayout) {
         this.preventLayout = preventLayout;
+    }
+
+    @Override
+    public void setVisibility(int visibility) {
+        throw new RuntimeException("FragmentRootView's visibility cannot be changed!");
+    }
+
+    public LockListenerAdapter getLockListenerAdapter() {
+        return lockListenerAdapter;
     }
 }

@@ -1,6 +1,6 @@
 package pl.zielony.fragmentmanager;
 
-import android.content.Context;
+import android.app.Activity;
 import android.os.Bundle;
 import android.os.Parcelable;
 import android.support.annotation.NonNull;
@@ -10,26 +10,38 @@ import android.view.View;
 import android.view.ViewGroup;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 import pl.zielony.animator.Animator;
 
 /**
  * Created by Marcin on 2015-03-20.
  */
-public abstract class Fragment extends FragmentManager {
+public abstract class Fragment extends ManagerBase {
+    public static final String HIERARCHY_STATE = "hierarchyState";
+
+    private static final String TARGET = "target";
+    private static final String ID = "id";
+    private static final String TAG = "tag";
+    private static final String FRESH = "fresh";
+
+    private static final int NO_TARGET = -1;
 
     private View view;
-    private FragmentRootView rootView;
 
     private boolean pooling;
-    private static Map<Class<? extends Fragment>, Fragment> fragmentPool = new HashMap<>();
 
     private FragmentAnimator fragmentAnimator;
+    private ManagerBase manager;
 
     private FragmentAnnotation annotation;
+
+    private int target = NO_TARGET;
+    private static SparseArray<Bundle> results = new SparseArray<>();
+
+    private int id;
+    private static int idSequence = 0;
+    private String tag;
 
     public Fragment() {
         annotation = getClass().getAnnotation(FragmentAnnotation.class);
@@ -43,155 +55,9 @@ public abstract class Fragment extends FragmentManager {
                 }
             }
         }
+        initStateMachineStates();
     }
 
-    protected View onCreateView() {
-        return LayoutInflater.from(getContext()).inflate(getViewResId(), rootView, false);
-    }
-
-    protected int getViewResId() {
-        if (annotation != null)
-            return annotation.layout();
-        return 0;
-    }
-
-    public String getTitle() {
-        if (annotation != null)
-            return getString(annotation.title());
-        return "";
-    }
-
-    @NonNull
-    public FragmentRootView getRootView() {
-        return rootView;
-    }
-
-    @NonNull
-    public View getView() {
-        return view;
-    }
-
-    public View findViewById(int id) {
-        return view.findViewById(id);
-    }
-
-    public List<View> findViewsById(int id) {
-        ArrayList<View> result = new ArrayList<>();
-        ArrayList<ViewGroup> groups = new ArrayList<>();
-        groups.add(rootView);
-
-        while (!groups.isEmpty()) {
-            ViewGroup group = groups.remove(0);
-
-            for (int i = 0; i < group.getChildCount(); ++i) {
-                View child = group.getChildAt(i);
-                if (child.getId() == id)
-                    result.add(child);
-
-                if (child instanceof ViewGroup)
-                    groups.add((ViewGroup) child);
-            }
-        }
-
-        return result;
-    }
-
-    public View findViewWithTag(Object tag) {
-        return view.findViewWithTag(tag);
-    }
-
-    public List<View> findViewsWithTag(Object tag) {
-        ArrayList<View> result = new ArrayList<>();
-        ArrayList<ViewGroup> groups = new ArrayList<>();
-        groups.add(rootView);
-
-        while (!groups.isEmpty()) {
-            ViewGroup group = groups.remove(0);
-
-            for (int i = 0; i < group.getChildCount(); ++i) {
-                View child = group.getChildAt(i);
-                if (tag.equals(child.getTag()))
-                    result.add(child);
-
-                if (child instanceof ViewGroup)
-                    groups.add((ViewGroup) child);
-            }
-        }
-
-        return result;
-    }
-
-    public Animator animateAdd() {
-        if (fragmentAnimator == null)
-            return null;
-        return fragmentAnimator.animateAdd(this);
-    }
-
-    public Animator animateStop() {
-        if (fragmentAnimator == null)
-            return null;
-        return fragmentAnimator.animateStop(this);
-    }
-
-    public Animator animateRemove() {
-        if (fragmentAnimator == null)
-            return null;
-        return fragmentAnimator.animateRemove(this);
-    }
-
-    public Animator animateStart() {
-        if (fragmentAnimator == null)
-            return null;
-        return fragmentAnimator.animateStart(this);
-    }
-
-    protected void create(Context context) {
-        super.create(context);
-        if (view == null) {
-            rootView = new FragmentRootView(context);
-            view = onCreateView();
-            view.setVisibility(View.INVISIBLE);
-            rootView.addView(view);
-            rootView.addOnLayoutChangeListener(new FragmentRootView.OnLayoutChangeListener() {
-                @Override
-                public void onLayoutChange(View v, int left, int top, int right, int bottom, int oldLeft, int oldTop, int oldRight, int oldBottom) {
-                    getStateMachine().update();
-                }
-            });
-            rootView.addOnAttachStateChangeListener(new FragmentRootView.OnAttachStateChangeListener() {
-                @Override
-                public void onViewAttachedToWindow(View v) {
-                    getStateMachine().update();
-                }
-
-                @Override
-                public void onViewDetachedFromWindow(View v) {
-                    getStateMachine().update();
-                }
-            });
-        }
-        getStateMachine().update();
-    }
-
-    @Override
-    public void detach() {
-        view.setAnimation(null);
-        ((ViewGroup) rootView.getParent()).removeView(rootView);
-    }
-
-    public void save(Bundle bundle) {
-        SparseArray<Parcelable> container = new SparseArray<>();
-        view.saveHierarchyState(container);
-        bundle.putSparseParcelableArray(HIERARCHY_STATE, container);
-        super.save(bundle);
-    }
-
-    public void restore(Bundle bundle) {
-        super.restore(bundle);
-        view.restoreHierarchyState(bundle.getSparseParcelableArray(HIERARCHY_STATE));
-    }
-
-    @Override
     protected void initStateMachineStates() {
         StateMachine stateMachine = getStateMachine();
         stateMachine.addEdge(StateMachine.STATE_NEW, STATE_CREATED, new EdgeListener() {
@@ -208,7 +74,7 @@ public abstract class Fragment extends FragmentManager {
         stateMachine.addEdge(STATE_CREATED, STATE_ATTACHED, new EdgeListener() {
             @Override
             public boolean canChangeState() {
-                return rootView.isAttached();
+                return getRootView().isAttached();
             }
 
             @Override
@@ -265,7 +131,7 @@ public abstract class Fragment extends FragmentManager {
         stateMachine.addEdge(STATE_ATTACHED, STATE_CREATED, new EdgeListener() {
             @Override
             public boolean canChangeState() {
-                return !rootView.isAttached();
+                return !getRootView().isAttached();
             }
 
             @Override
@@ -273,6 +139,162 @@ public abstract class Fragment extends FragmentManager {
                 onDetach();
             }
         });
+    }
+
+    protected View onCreateView() {
+        return LayoutInflater.from(getActivity()).inflate(getViewResId(), getRootView(), false);
+    }
+
+    protected int getViewResId() {
+        if (annotation != null)
+            return annotation.layout();
+        return 0;
+    }
+
+    public String getTitle() {
+        if (annotation != null)
+            return getString(annotation.title());
+        return "";
+    }
+
+    @NonNull
+    public View getView() {
+        return view;
+    }
+
+    public View findViewById(int id) {
+        return view.findViewById(id);
+    }
+
+    public List<View> findViewsById(int id) {
+        ArrayList<View> result = new ArrayList<>();
+        ArrayList<ViewGroup> groups = new ArrayList<>();
+        groups.add(getRootView());
+
+        while (!groups.isEmpty()) {
+            ViewGroup group = groups.remove(0);
+
+            for (int i = 0; i < group.getChildCount(); ++i) {
+                View child = group.getChildAt(i);
+                if (child.getId() == id)
+                    result.add(child);
+
+                if (child instanceof ViewGroup)
+                    groups.add((ViewGroup) child);
+            }
+        }
+
+        return result;
+    }
+
+    public View findViewWithTag(Object tag) {
+        return view.findViewWithTag(tag);
+    }
+
+    public List<View> findViewsWithTag(Object tag) {
+        ArrayList<View> result = new ArrayList<>();
+        ArrayList<ViewGroup> groups = new ArrayList<>();
+        groups.add(getRootView());
+
+        while (!groups.isEmpty()) {
+            ViewGroup group = groups.remove(0);
+
+            for (int i = 0; i < group.getChildCount(); ++i) {
+                View child = group.getChildAt(i);
+                if (tag.equals(child.getTag()))
+                    result.add(child);
+
+                if (child instanceof ViewGroup)
+                    groups.add((ViewGroup) child);
+            }
+        }
+
+        return result;
+    }
+
+    public Animator animateAdd() {
+        return fragmentAnimator == null ? null : fragmentAnimator.animateAdd(this);
+    }
+
+    public Animator animateStop() {
+        return fragmentAnimator == null ? null : fragmentAnimator.animateStop(this);
+    }
+
+    public Animator animateRemove() {
+        return fragmentAnimator == null ? null : fragmentAnimator.animateRemove(this);
+    }
+
+    public Animator animateStart() {
+        return fragmentAnimator == null ? null : fragmentAnimator.animateStart(this);
+    }
+
+    protected void create(Activity activity, Bundle state) {
+        this.activity = activity;
+        id = idSequence++;
+        if (rootView == null) {
+            rootView = new FragmentRootView(activity);
+            rootView.addOnLayoutChangeListener(new FragmentRootView.OnLayoutChangeListener() {
+                @Override
+                public void onLayoutChange(View v, int left, int top, int right, int bottom, int oldLeft, int oldTop, int oldRight, int oldBottom) {
+                    getStateMachine().update();
+                }
+            });
+            rootView.addOnAttachStateChangeListener(new FragmentRootView.OnAttachStateChangeListener() {
+                @Override
+                public void onViewAttachedToWindow(View v) {
+                    getStateMachine().update();
+                }
+
+                @Override
+                public void onViewDetachedFromWindow(View v) {
+                    getStateMachine().update();
+                }
+            });
+        }
+        if (view == null) {
+            view = onCreateView();
+            view.setVisibility(View.INVISIBLE);
+            getRootView().addView(view);
+        }
+
+        if (state != null)
+            restore(state);
+
+        getStateMachine().update();
+    }
+
+    public void destroy() {
+        if (!isCreated())
+            return;
+        id = -1;
+        manager = null;
+        super.destroy();
+    }
+
+    public void save(Bundle state) {
+        super.save(state);
+
+        if (target != NO_TARGET)
+            state.putInt(TARGET, target);
+        state.putInt(ID, id);
+        state.putString(TAG, tag);
+        state.putBoolean(FRESH, fresh);
+
+        SparseArray<Parcelable> container = new SparseArray<>();
+        view.saveHierarchyState(container);
+        state.putSparseParcelableArray(HIERARCHY_STATE, container);
+    }
+
+    public void restore(Bundle state) {
+        super.restore(state);
+
+        if (state.containsKey(TARGET))
+            target = state.getInt(TARGET);
+        id = state.getInt(ID);
+        tag = state.getString(TAG);
+        fresh = state.getBoolean(FRESH);
+
+        view.restoreHierarchyState(state.getSparseParcelableArray(HIERARCHY_STATE));
     }
 
     public void setPoolingEnabled(boolean pooling) {
@@ -291,42 +313,78 @@ public abstract class Fragment extends FragmentManager {
         this.fragmentAnimator = fragmentAnimator;
     }
 
-    public static <T extends Fragment> T instantiate(Class<T> fragmentClass, Context context) {
-        Fragment fromPool = fragmentPool.remove(fragmentClass);
+    public static <T extends Fragment> T instantiate(Class<T> fragmentClass, Activity activity) {
+        return instantiate(fragmentClass, activity);
+    }
+
+    public static <T extends Fragment> T instantiate(Class<T> fragmentClass, Activity activity, Bundle state) {
+        Fragment fromPool = FragmentPool.remove(fragmentClass);
         if (fromPool != null) {
-            fromPool.create(context);
+            fromPool.create(activity, state);
             return (T) fromPool;
         }
 
         Fragment fragment;
         try {
             fragment = fragmentClass.getConstructor().newInstance();
-            fragment.create(context);
+            fragment.create(activity, state);
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
         return (T) fragment;
     }
 
-    public static void pool(Class<? extends Fragment> fragmentClass, Context context) {
-        FragmentAnnotation annotation = fragmentClass.getAnnotation(FragmentAnnotation.class);
-        if (annotation != null && !annotation.pooling())
-            throw new RuntimeException(fragmentClass.getSimpleName() + " cannot be pooled because pooling is disabled by annotation");
-        if (!fragmentPool.containsKey(fragmentClass))
-            fragmentPool.put(fragmentClass, instantiate(fragmentClass, context));
+    public void onResult(Bundle result) {
     }
 
-    public static void pool(Fragment fragment) {
-        if (!fragment.isPoolingEnabled())
+    public void setTargetFragment(Fragment target) {
+        this.target = target.id;
+    }
+
+    public void setResult(Bundle result) {
+        if (target == NO_TARGET)
             return;
-        if (!fragmentPool.containsKey(fragment.getClass()))
-            fragmentPool.put(fragment.getClass(), fragment);
+        results.append(target, result);
     }
 
-    // wyczyść basen :D
-    public static void clearPool() {
-        fragmentPool.clear();
+    public int getId() {
+        return id;
     }
 
+    public String getTag() {
+        return tag;
+    }
 
+    public void setTag(String tag) {
+        this.tag = tag;
+    }
+
+    public int getTarget() {
+        return target;
+    }
+
+    /**
+     * Gets and removes the result
+     *
+     * @param id
+     * @return
+     */
+    public static Bundle getResult(int id) {
+        results.remove(id);
+        return results.get(id);
+    }
+
+    void setManager(ManagerBase manager) {
+        //this.activity = manager.getActivity();
+        this.manager = manager;
+    }
+
+    public ManagerBase getManager() {
+        return manager;
+    }
+
+    @Override
+    public String toString() {
+        return getClass().getSimpleName() + ":" + hashCode() % 100 + " [id:" + id + ", tag:" + tag + "]";
+    }
 }

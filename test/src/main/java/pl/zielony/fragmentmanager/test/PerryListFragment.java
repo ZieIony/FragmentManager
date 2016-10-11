@@ -21,8 +21,8 @@ public class PerryListFragment extends Fragment {
         findViewById(R.id.row).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                DetailFragment detailFragment = Fragment.instantiate(DetailFragment.class, getContext());
-                FragmentTransaction transaction = new FragmentTransaction(getFragmentManager(), TransactionMode.Push);
+                DetailFragment detailFragment = Fragment.instantiate(DetailFragment.class, getActivity());
+                FragmentTransaction transaction = new FragmentTransaction(getManager(), TransactionMode.Push);
                 transaction.replace(detailFragment, "container");
                 transaction.addSharedElement(new ViewSharedElement(findViewById(R.id.image), PerryListFragment.this, detailFragment));
                 transaction.addSharedElement(new TextViewSharedElement((TextView) findViewById(R.id.title), PerryListFragment.this, detailFragment));

@@ -2,9 +2,11 @@ package pl.zielony.fragmentmanager;
 
 import android.content.Intent;
 import android.os.Bundle;
-import android.support.annotation.Nullable;
+import android.support.annotation.LayoutRes;
 import android.support.v7.app.AppCompatActivity;
 import android.view.KeyEvent;
+import android.view.View;
+import android.view.ViewGroup;
 
 /**
  * Created by Marcin on 2016-05-11.
@@ -12,10 +14,38 @@ import android.view.KeyEvent;
 public class FragmentActivity extends AppCompatActivity {
     private FragmentManager fragmentManager;
 
-    @Override
-    protected void onCreate(@Nullable Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
+    public FragmentActivity() {
         fragmentManager = new FragmentManager(this);
+    }
+
+    @Override
+    public void setContentView(@LayoutRes int layoutResID) {
+        FragmentRootView rootView = new FragmentRootView(this);
+        fragmentManager.setRootView(rootView);
+        View.inflate(this, layoutResID, rootView);
+        super.setContentView(rootView);
+    }
+
+    @Override
+    public void setContentView(View view) {
+        FragmentRootView rootView = new FragmentRootView(this);
+        fragmentManager.setRootView(rootView);
+        rootView.addView(view);
+        super.setContentView(rootView);
+    }
+
+    @Override
+    public void setContentView(View view, ViewGroup.LayoutParams params) {
+        FragmentRootView rootView = new FragmentRootView(this);
+        fragmentManager.setRootView(rootView);
+        rootView.addView(view, params);
+        super.setContentView(rootView);
+    }
+
+    public void enableFragmentDebugging() {
+        FragmentTreeView treeView = new FragmentTreeView(this);
+        treeView.setFragmentManager(fragmentManager);
+        addContentView(treeView, new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
     }
 
     @Override
@@ -32,7 +62,7 @@ public class FragmentActivity extends AppCompatActivity {
     public void navigate(FragmentRoute route) {
         FragmentRoute.RouteStep step = route.removeStep();
         if (step.fragment == null)
-            step.fragment = Fragment.instantiate(step.klass, this);
+            step.fragment = Fragment.instantiate(step.klass, this, null);
         if (onNavigate(step.fragment, step.mode) && route.length() > 0)
             fragmentManager.navigate(route);
     }
@@ -95,7 +125,7 @@ public class FragmentActivity extends AppCompatActivity {
 
     @Override
     public boolean dispatchKeyEvent(KeyEvent event) {
-        if(super.dispatchKeyEvent(event))
+        if (super.dispatchKeyEvent(event))
             return true;
         return fragmentManager.dispatchKeyEvent(event);
     }
@@ -103,6 +133,6 @@ public class FragmentActivity extends AppCompatActivity {
     @Override
     public void onLowMemory() {
         super.onLowMemory();
-        Fragment.clearPool();
+        FragmentPool.clear();
     }
 }

@@ -22,36 +22,14 @@ public class FragmentTransaction {
 
     List<StateChange> changes = new ArrayList<>();
     private List<SharedElement> sharedElements = new ArrayList<>();
-    private FragmentManager manager;
+    private ManagerBase manager;
     private TransactionMode mode;
 
-    static class StateChange {
-        enum Change {
-            Add, Remove
-        }
-
-        private final FragmentState state;
-        private final Change change;
-
-        StateChange(FragmentState state, Change change) {
-            this.state = state;
-            this.change = change;
-        }
-
-        Change getChange() {
-            return change;
-        }
-
-        FragmentState getState() {
-            return state;
-        }
+    public FragmentTransaction(ManagerBase manager) {
+        this.manager = manager;
     }
 
-    public FragmentTransaction(FragmentManager fragmentManager) {
-        this.manager = fragmentManager;
-    }
-
-    public FragmentTransaction(FragmentManager manager, TransactionMode mode) {
+    public FragmentTransaction(ManagerBase manager, TransactionMode mode) {
         this.manager = manager;
         this.mode = mode;
     }
@@ -77,13 +55,13 @@ public class FragmentTransaction {
 
         manager.backstack.add(this);
         for (StateChange stateChange : changes) {
-            if (stateChange.change == StateChange.Change.Add) {
-                manager.startState(stateChange.state);
-                Animator animator = manager.prepareAddAnimation(stateChange.state, stateChange.state.getFragment().animateAdd());
+            if (stateChange.getChange() == StateChange.Change.Add) {
+                manager.startState(stateChange.getState(), stateChange.getChange());
+                Animator animator = manager.prepareAddAnimation(stateChange.getState(), stateChange.getState().getFragment().animateAdd());
                 if (animator != null)
                     animators.add(animator);
             } else {
-                Animator animator = manager.prepareRemoveAnimation(stateChange.state, stateChange.state.getFragment().animateStop());
+                Animator animator = manager.prepareRemoveAnimation(stateChange.getState(), stateChange.getState().getFragment().animateStop());
                 if (animator != null)
                     animators.add(animator);
             }
@@ -96,13 +74,13 @@ public class FragmentTransaction {
 
     private void removeJoinedFragments(List<Animator> animators) {
         for (StateChange newChange : changes) {
-            FragmentState newState = newChange.state;
+            FragmentState newState = newChange.getState();
 
             FragmentTransaction transaction = manager.backstack.get(manager.backstack.size() - 1);
 
             for (int i = transaction.changes.size() - 1; i >= 0; i--) {
                 StateChange backstackChange = transaction.changes.get(i);
-                FragmentState backstackState = backstackChange.state;
+                FragmentState backstackState = backstackChange.getState();
 
                 if (newState.equals(backstackState)) {
                     Animator animator = manager.prepareRemoveAnimation(backstackState, backstackState.getFragment().animateStop());
@@ -124,13 +102,13 @@ public class FragmentTransaction {
 
         for (int i = changes.size() - 1; i >= 0; i--) {
             StateChange stateChange = changes.get(i);
-            if (stateChange.change == StateChange.Change.Add) {
-                Animator animator = manager.prepareRemoveAnimation(stateChange.state, stateChange.state.getFragment().animateRemove());
+            if (stateChange.getChange() == StateChange.Change.Add) {
+                Animator animator = manager.prepareRemoveAnimation(stateChange.getState(), stateChange.getState().getFragment().animateRemove());
                 if (animator != null)
                     animators.add(animator);
             } else {
-                manager.startState(stateChange.state);
-                Animator animator = manager.prepareAddAnimation(stateChange.state, stateChange.state.getFragment().animateStart());
+                manager.startState(stateChange.getState(),stateChange.getChange());
+                Animator animator = manager.prepareAddAnimation(stateChange.getState(), stateChange.getState().getFragment().animateStart());
                 if (animator != null)
                     animators.add(animator);
             }
@@ -199,10 +177,10 @@ public class FragmentTransaction {
         int[] states = new int[this.changes.size()];
         for (int i = 0; i < this.changes.size(); i++) {
             StateChange change = this.changes.get(i);
-            changes[i] = change.change.ordinal();
-            if (!allStates.contains(change.state))
-                allStates.add(change.state);
-            states[i] = allStates.indexOf(change.state);
+            changes[i] = change.getChange().ordinal();
+            if (!allStates.contains(change.getState()))
+                allStates.add(change.getState());
+            states[i] = allStates.indexOf(change.getState());
         }
 
         ArrayList<Bundle> sharedElementBundles = new ArrayList<>();
@@ -254,21 +232,21 @@ public class FragmentTransaction {
     // -------------------
 
     public <T extends Fragment> void add(T fragment, int id) {
-        addStateChange(new FragmentState(fragment, id, null), FragmentTransaction.StateChange.Change.Add);
+        addStateChange(new FragmentState(fragment, id, null), StateChange.Change.Add);
     }
 
     public <T extends Fragment> void add(T fragment, String tag) {
-        addStateChange(new FragmentState(fragment, 0, tag), FragmentTransaction.StateChange.Change.Add);
+        addStateChange(new FragmentState(fragment, 0, tag), StateChange.Change.Add);
     }
 
     public <T extends Fragment> void add(Class<T> fragmentClass, int id) {
-        T fragment = Fragment.instantiate(fragmentClass, manager.getActivity());
-        addStateChange(new FragmentState(fragment, id, null), FragmentTransaction.StateChange.Change.Add);
+        T fragment = Fragment.instantiate(fragmentClass, manager.getActivity(), null);
+        addStateChange(new FragmentState(fragment, id, null), StateChange.Change.Add);
     }
 
     public <T extends Fragment> void add(Class<T> fragmentClass, String tag) {
-        T fragment = Fragment.instantiate(fragmentClass, manager.getActivity());
-        addStateChange(new FragmentState(fragment, 0, tag), FragmentTransaction.StateChange.Change.Add);
+        T fragment = Fragment.instantiate(fragmentClass, manager.getActivity(), null);
+        addStateChange(new FragmentState(fragment, 0, tag), StateChange.Change.Add);
     }
 
 
@@ -289,25 +267,25 @@ public class FragmentTransaction {
     }
 
     public <T extends Fragment> void replace(Class<T> fragmentClass, int id) {
-        T fragment = Fragment.instantiate(fragmentClass, manager.getActivity());
+        T fragment = Fragment.instantiate(fragmentClass, manager.getActivity(), null);
         replaceFragment(null, fragment, id, null);
     }
 
     public <T extends Fragment> void replace(Class<T> fragmentClass, String tag) {
-        T fragment = Fragment.instantiate(fragmentClass, manager.getActivity());
+        T fragment = Fragment.instantiate(fragmentClass, manager.getActivity(), null);
         replaceFragment(null, fragment, 0, tag);
     }
 
     public <T extends Fragment, T2 extends Fragment> void replace(T2 removeFragment, Class<T> fragmentClass) {
-        T fragment = Fragment.instantiate(fragmentClass, manager.getActivity());
+        T fragment = Fragment.instantiate(fragmentClass, manager.getActivity(), null);
         replaceFragment(removeFragment, fragment, 0, null);
     }
 
     private void replaceFragment(Fragment removeFragment, Fragment fragment, int id, String tag) {
         for (FragmentState state : manager.activeStates) {
             if (state.getFragment() == removeFragment || state.layoutId == id || tag != null && tag.equals(state.tag)) {
-                addStateChange(state, FragmentTransaction.StateChange.Change.Remove);
-                addStateChange(new FragmentState(fragment, id, tag), FragmentTransaction.StateChange.Change.Add);
+                addStateChange(state, StateChange.Change.Remove);
+                addStateChange(new FragmentState(fragment, id, tag), StateChange.Change.Add);
                 return;
             }
         }
@@ -333,7 +311,7 @@ public class FragmentTransaction {
     private void removeFragment(Fragment removeFragment, int id, String tag) {
         for (FragmentState state : manager.activeStates) {
             if (state.getFragment() == removeFragment || state.layoutId == id || tag != null && tag.equals(state.tag)) {
-                addStateChange(state, FragmentTransaction.StateChange.Change.Remove);
+                addStateChange(state, StateChange.Change.Remove);
                 break;
             }
         }

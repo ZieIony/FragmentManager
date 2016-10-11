@@ -32,21 +32,18 @@ public class MainFragment extends Fragment {
         toolbar.getIconView().setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                if (getFragmentManager().hasUp()) {
-                    getFragmentManager().upTraverse();
+                if (getManager().hasUp()) {
+                    getManager().upTraverse();
                 } else {
                     getActivity().onBackPressed();
                 }
             }
         });
-    }
 
-    @Override
-    protected void onStart(boolean fresh) {
-        super.onStart(fresh);
-        if (fresh) {
+        if (getFragments().isEmpty()) {
             add(RedFragment.class, "container", TransactionMode.Join);
             add(DrawerFragment.class, R.id.drawer, TransactionMode.Join);
         }
     }
+
 }

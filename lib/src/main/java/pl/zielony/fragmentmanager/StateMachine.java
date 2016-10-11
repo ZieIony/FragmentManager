@@ -1,7 +1,6 @@
 package pl.zielony.fragmentmanager;
 
 import android.os.Bundle;
-import android.util.Log;
 import android.util.SparseArray;
 
 /**
@@ -27,7 +26,7 @@ public class StateMachine {
         state = bundle.getInt(STATE);
     }
 
-    public FragmentManager fragment;
+   // public FragmentManager fragment;
 
     public void setState(int newState) {
         if (!hasEdge(state, newState))
@@ -37,7 +36,7 @@ public class StateMachine {
     }
 
     private void setStateInternal(int newState) {
-        Log.e("state machine", "[" + fragment.getClass().getSimpleName() + ":" + fragment.hashCode() % 100 + "] changed state from " + state + " to " + newState);
+        //Log.e("state machine", "[" + fragment.getClass().getSimpleName() + ":" + fragment.hashCode() % 100 + "] changed state from " + state + " to " + newState);
         EdgeListener listener = edges.get(state).get(newState);
         state = newState;
         listener.onStateChanged();

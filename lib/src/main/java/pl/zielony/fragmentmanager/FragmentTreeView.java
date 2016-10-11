@@ -10,6 +10,8 @@ import android.util.AttributeSet;
 import android.util.Log;
 import android.view.View;
 
+import com.nineoldandroids.view.ViewHelper;
+
 import java.util.List;
 
 /**
@@ -52,13 +54,16 @@ public class FragmentTreeView extends View {
         int y = 20, x = 5;
         paint.setTextSize(14);
         paint.setColor(Color.BLACK);
+        paint.setShadowLayer(1, 0, 0, Color.WHITE);
         drawManager(canvas, x, y, fragmentManager);
     }
 
-    private int drawManager(Canvas canvas, int x, int y, FragmentManager manager) {
+    private int drawManager(Canvas canvas, int x, int y, ManagerBase manager) {
         List<Fragment> fragments = manager.getFragments();
         for (Fragment f : fragments) {
-            canvas.drawText(f.getClass().getSimpleName(), x, y, paint);
+            View v = f.getView();
+            String text = f.getClass().getSimpleName() + " s:" + f.getStateMachine().getState() + " v:" + (f.getRootView().isAttached() && v.getVisibility() == VISIBLE && ViewHelper.getAlpha(v) > 0 ? "t" : "f") + " " + v.getWidth() + "x" + v.getHeight();
+            canvas.drawText(text, x, y, paint);
             y += step;
             y = drawManager(canvas, x + step, y, f);
         }

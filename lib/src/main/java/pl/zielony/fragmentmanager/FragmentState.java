@@ -1,6 +1,6 @@
 package pl.zielony.fragmentmanager;
 
-import android.content.Context;
+import android.app.Activity;
 import android.os.Bundle;
 
 /**
@@ -17,7 +17,7 @@ class FragmentState {
     private Bundle state;
 
     FragmentState() {
-        state = new Bundle();
+
     }
 
     FragmentState(Fragment fragment, int layoutId, String tag) {
@@ -25,14 +25,19 @@ class FragmentState {
         this.fragmentClass = fragment.getClass();
         this.layoutId = layoutId;
         this.tag = tag;
-        state = new Bundle();
     }
 
-    void save(Bundle bundle) {
+    Bundle save() {
+        Bundle bundle = new Bundle();
         bundle.putString(CLASS, fragmentClass.getName());
         bundle.putInt(ID, layoutId);
         bundle.putString(TAG, tag);
-        bundle.putBundle(FRAGMENT, state);
+        if (fragment != null) {
+            state = new Bundle();
+            fragment.save(state);
+            bundle.putBundle(FRAGMENT, state);
+        }
+        return bundle;
     }
 
     void restore(Bundle bundle) {
@@ -50,8 +55,8 @@ class FragmentState {
         return fragment;
     }
 
-    public void instantiateFragment(Context context) {
-        fragment = Fragment.instantiate(fragmentClass, context);
+    public void instantiateFragment(Activity activity) {
+        fragment = Fragment.instantiate(fragmentClass, activity, state);
     }
 
     public Bundle getState() {
