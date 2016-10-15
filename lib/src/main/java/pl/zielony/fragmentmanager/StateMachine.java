@@ -8,14 +8,13 @@ import android.util.SparseArray;
  */
 
 public class StateMachine {
-    private static final String STATE = "state";
+    private static final String STATE = "userState";
 
     public static final int STATE_NEW = 0;
 
     private int state = STATE_NEW;
 
     private SparseArray<SparseArray<EdgeListener>> edges = new SparseArray<>();
-    //private List<QueuedState> queuedStates = new ArrayList<>();
     private OnStateChangeListener stateListener;
 
     public void save(Bundle bundle) {
@@ -26,36 +25,26 @@ public class StateMachine {
         state = bundle.getInt(STATE);
     }
 
-   // public FragmentManager fragment;
+    // public FragmentManager fragment;
 
     public void setState(int newState) {
         if (!hasEdge(state, newState))
-            throw new IllegalStateException("cannot change state from " + state + " to state " + newState);
+            throw new IllegalStateException("cannot change userState from " + state + " to userState " + newState);
         setStateInternal(newState);
         update();
     }
 
     private void setStateInternal(int newState) {
-        //Log.e("state machine", "[" + fragment.getClass().getSimpleName() + ":" + fragment.hashCode() % 100 + "] changed state from " + state + " to " + newState);
+        //Log.e("userState machine", "[" + fragment.getClass().getSimpleName() + ":" + fragment.hashCode() % 100 + "] changed userState from " + userState + " to " + newState);
         EdgeListener listener = edges.get(state).get(newState);
         state = newState;
         listener.onStateChanged();
         if (stateListener != null)
             stateListener.onStateChange(state);
-
-        /*if (queuedStates.isEmpty())
-            return;
-
-        QueuedState queuedState = queuedStates.get(0);
-        if (hasEdge(state, queuedState.state)) {
-            queuedStates.remove(0);
-            setState(queuedState.state, queuedState.param);
-        }*/
     }
 
     public void resetState() {
         state = STATE_NEW;
-        //queuedStates.clear();
     }
 
     public void addEdge(int stateFrom, int stateTo, EdgeListener listener) {
@@ -75,24 +64,6 @@ public class StateMachine {
     public int getState() {
         return state;
     }
-
-    /*public <Type> void queueState(int newState, Type param) {
-        if (queuedStates.isEmpty() && hasEdge(state, newState)) {
-            setState(newState, param);
-            return;
-        }
-        queuedStates.add(new QueuedState(newState, param));
-    }
-
-    private static class QueuedState {
-        private final int state;
-        private final Object param;
-
-        public <Type> QueuedState(int state, Type param) {
-            this.state = state;
-            this.param = param;
-        }
-    }*/
 
     public void setOnStateChangeListener(OnStateChangeListener stateListener) {
         this.stateListener = stateListener;

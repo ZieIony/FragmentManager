@@ -6,6 +6,7 @@ import android.widget.TextView;
 import pl.zielony.fragmentmanager.Fragment;
 import pl.zielony.fragmentmanager.FragmentAnnotation;
 import pl.zielony.fragmentmanager.FragmentTransaction;
+import pl.zielony.fragmentmanager.ModalFragmentAnimator;
 import pl.zielony.fragmentmanager.TextViewSharedElement;
 import pl.zielony.fragmentmanager.TransactionMode;
 import pl.zielony.fragmentmanager.ViewSharedElement;
@@ -13,7 +14,7 @@ import pl.zielony.fragmentmanager.ViewSharedElement;
 /**
  * Created by Marcin on 2015-12-08.
  */
-@FragmentAnnotation(layout = R.layout.fragment_perrylist)
+@FragmentAnnotation(layout = R.layout.fragment_perrylist, animator = ModalFragmentAnimator.class)
 public class PerryListFragment extends Fragment {
     @Override
     protected void onCreate() {

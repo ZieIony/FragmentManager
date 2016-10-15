@@ -23,7 +23,6 @@ public abstract class Fragment extends ManagerBase {
     private static final String TARGET = "target";
     private static final String ID = "id";
     private static final String TAG = "tag";
-    private static final String FRESH = "fresh";
 
     private static final int NO_TARGET = -1;
 
@@ -47,10 +46,10 @@ public abstract class Fragment extends ManagerBase {
         annotation = getClass().getAnnotation(FragmentAnnotation.class);
         if (annotation != null) {
             pooling = annotation.pooling();
-            Class animatorClass = annotation.animator();
-            if (animatorClass != Void.class) {
+            Class<? extends FragmentAnimator> animatorClass = annotation.animator();
+            if (animatorClass != FragmentAnimator.EMPTY) {
                 try {
-                    fragmentAnimator = (FragmentAnimator) animatorClass.getConstructor().newInstance();
+                    fragmentAnimator = animatorClass.getConstructor().newInstance();
                 } catch (Exception e) {
                 }
             }
@@ -58,7 +57,7 @@ public abstract class Fragment extends ManagerBase {
         initStateMachineStates();
     }
 
-    protected void initStateMachineStates() {
+    private void initStateMachineStates() {
         StateMachine stateMachine = getStateMachine();
         stateMachine.addEdge(StateMachine.STATE_NEW, STATE_CREATED, new EdgeListener() {
             @Override
@@ -90,8 +89,7 @@ public abstract class Fragment extends ManagerBase {
 
             @Override
             public void onStateChanged() {
-                onStart(fresh);
-                fresh = false;
+                onStart();
             }
         });
         stateMachine.addEdge(STATE_STARTED, STATE_RESUMED, new EdgeListener() {
@@ -257,8 +255,7 @@ public abstract class Fragment extends ManagerBase {
             getRootView().addView(view);
         }
 
-        if (state != null)
-            restore(state);
+        this.userState = state;
 
         getStateMachine().update();
     }
@@ -278,7 +275,6 @@ public abstract class Fragment extends ManagerBase {
             state.putInt(TARGET, target);
         state.putInt(ID, id);
         state.putString(TAG, tag);
-        state.putBoolean(FRESH, fresh);
 
         SparseArray<Parcelable> container = new SparseArray<>();
         view.saveHierarchyState(container);
@@ -292,7 +288,6 @@ public abstract class Fragment extends ManagerBase {
             target = state.getInt(TARGET);
         id = state.getInt(ID);
         tag = state.getString(TAG);
-        fresh = state.getBoolean(FRESH);
 
         view.restoreHierarchyState(state.getSparseParcelableArray(HIERARCHY_STATE));
     }
@@ -314,23 +309,24 @@ public abstract class Fragment extends ManagerBase {
     }
 
     public static <T extends Fragment> T instantiate(Class<T> fragmentClass, Activity activity) {
-        return instantiate(fragmentClass, activity);
+        return instantiate(fragmentClass, activity, null);
     }
 
     public static <T extends Fragment> T instantiate(Class<T> fragmentClass, Activity activity, Bundle state) {
-        Fragment fromPool = FragmentPool.remove(fragmentClass);
-        if (fromPool != null) {
-            fromPool.create(activity, state);
-            return (T) fromPool;
+        Fragment fragment = FragmentPool.remove(fragmentClass);
+        if (fragment == null) {
+            try {
+                fragment = fragmentClass.getConstructor().newInstance();
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
         }
 
-        Fragment fragment;
-        try {
-            fragment = fragmentClass.getConstructor().newInstance();
-            fragment.create(activity, state);
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
+        fragment.create(activity, state);
+
+        if (state != null)
+            fragment.restore(state);
+
         return (T) fragment;
     }
 

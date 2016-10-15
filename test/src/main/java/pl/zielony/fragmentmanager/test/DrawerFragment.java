@@ -16,7 +16,6 @@ import pl.zielony.fragmentmanager.TransactionMode;
 public class DrawerFragment extends Fragment {
     @Override
     protected void onCreate() {
-        super.onCreate();
         findViewById(R.id.main).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {

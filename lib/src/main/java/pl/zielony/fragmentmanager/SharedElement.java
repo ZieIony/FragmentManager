@@ -23,7 +23,7 @@ public abstract class SharedElement<FrameType extends KeyFrame, ViewType extends
     protected int idFrom;
     protected int idTo;
     protected int viewId;
-    private long duration = DefaultFragmentAnimator.DEFAULT_ANIMATION_DURATION;
+    private long duration = DefaultFragmentAnimator.DEFAULT_DURATION;
     private Interpolator interpolator;
 
     protected ViewType view;

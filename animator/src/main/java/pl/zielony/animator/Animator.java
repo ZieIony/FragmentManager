@@ -19,6 +19,20 @@ public class Animator {
 
     private boolean running = false;
 
+    public Animator() {
+    }
+
+    public Animator(long duration, UpdateListener updateListener) {
+        this.duration = duration;
+        this.updateListener = updateListener;
+    }
+
+    public Animator(long duration, Interpolator interpolator, UpdateListener updateListener) {
+        this.duration = duration;
+        this.interpolator = interpolator;
+        this.updateListener = updateListener;
+    }
+
     private Runnable startRunnable = new Runnable() {
         @Override
         public void run() {

@@ -137,12 +137,12 @@ public class FragmentRootView extends FrameLayout {
 
     @Override
     public boolean dispatchTouchEvent(MotionEvent ev) {
-        return locked ? true : super.dispatchTouchEvent(ev);
+        return locked || super.dispatchTouchEvent(ev);
     }
 
     @Override
     public boolean dispatchKeyEvent(KeyEvent event) {
-        return locked ? true : super.dispatchKeyEvent(event);
+        return locked || super.dispatchKeyEvent(event);
     }
 
     @Override

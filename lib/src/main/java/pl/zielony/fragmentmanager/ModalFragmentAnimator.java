@@ -15,7 +15,7 @@ import pl.zielony.animator.UpdateListener;
  * Created by Marcin on 2016-07-07.
  */
 
-public class DefaultFragmentAnimator implements FragmentAnimator {
+public class ModalFragmentAnimator implements FragmentAnimator {
     public static final int DEFAULT_DURATION = 200;
     private Interpolator decelerateInterpolator = new DecelerateInterpolator();
     private Interpolator accelerateInterpolator = new AccelerateInterpolator();
@@ -26,9 +26,8 @@ public class DefaultFragmentAnimator implements FragmentAnimator {
             @Override
             public void onUpdate(float interpolation) {
                 ViewHelper.setAlpha(view, interpolation);
-                float value = 1.2f - 0.2f * interpolation;
-                ViewHelper.setScaleX(view, value);
-                ViewHelper.setScaleY(view, value);
+                float value = view.getHeight() * (1.0f - interpolation) / 2.0f;
+                ViewHelper.setTranslationY(view, value);
             }
         });
     }
@@ -45,9 +44,8 @@ public class DefaultFragmentAnimator implements FragmentAnimator {
             @Override
             public void onUpdate(float interpolation) {
                 ViewHelper.setAlpha(view, 1 - interpolation);
-                float value = 1.0f + 0.2f * interpolation;
-                ViewHelper.setScaleX(view, value);
-                ViewHelper.setScaleY(view, value);
+                float value = view.getHeight() * interpolation / 2.0f;
+                ViewHelper.setTranslationY(view, value);
             }
         });
     }
@@ -60,8 +58,7 @@ public class DefaultFragmentAnimator implements FragmentAnimator {
             @Override
             public void onStart() {
                 ViewHelper.setAlpha(view, 1);
-                ViewHelper.setScaleX(view, 1);
-                ViewHelper.setScaleY(view, 1);
+                ViewHelper.setTranslationY(view, 0);
             }
         });
         return animator;

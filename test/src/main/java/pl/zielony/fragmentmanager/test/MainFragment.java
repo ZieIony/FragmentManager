@@ -40,7 +40,7 @@ public class MainFragment extends Fragment {
             }
         });
 
-        if (getFragments().isEmpty()) {
+        if (getState() == null) {
             add(RedFragment.class, "container", TransactionMode.Join);
             add(DrawerFragment.class, R.id.drawer, TransactionMode.Join);
         }

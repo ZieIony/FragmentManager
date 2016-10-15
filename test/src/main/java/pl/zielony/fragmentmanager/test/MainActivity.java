@@ -24,4 +24,5 @@ public class MainActivity extends FragmentActivity {
         getFragmentManager2().replace(fragment, R.id.root, mode);
         return true;
     }
+
 }

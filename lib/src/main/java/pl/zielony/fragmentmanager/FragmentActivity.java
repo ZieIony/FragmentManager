@@ -3,6 +3,7 @@ package pl.zielony.fragmentmanager;
 import android.content.Intent;
 import android.os.Bundle;
 import android.support.annotation.LayoutRes;
+import android.support.annotation.Nullable;
 import android.support.v7.app.AppCompatActivity;
 import android.view.KeyEvent;
 import android.view.View;
@@ -13,10 +14,6 @@ import android.view.ViewGroup;
  */
 public class FragmentActivity extends AppCompatActivity {
     private FragmentManager fragmentManager;
-
-    public FragmentActivity() {
-        fragmentManager = new FragmentManager(this);
-    }
 
     @Override
     public void setContentView(@LayoutRes int layoutResID) {
@@ -81,6 +78,12 @@ public class FragmentActivity extends AppCompatActivity {
     protected void onRestoreInstanceState(Bundle savedInstanceState) {
         super.onRestoreInstanceState(savedInstanceState);
         fragmentManager.restore(savedInstanceState);
+    }
+
+    @Override
+    protected void onCreate(@Nullable Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        fragmentManager = new FragmentManager(this, savedInstanceState);
     }
 
     public FragmentManager getFragmentManager2() {

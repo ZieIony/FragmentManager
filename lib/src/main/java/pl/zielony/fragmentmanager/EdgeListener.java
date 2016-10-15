@@ -5,5 +5,6 @@ package pl.zielony.fragmentmanager;
  */
 public interface EdgeListener {
     boolean canChangeState();
+
     void onStateChanged();
 }

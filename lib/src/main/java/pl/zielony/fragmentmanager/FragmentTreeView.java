@@ -62,7 +62,8 @@ public class FragmentTreeView extends View {
         List<Fragment> fragments = manager.getFragments();
         for (Fragment f : fragments) {
             View v = f.getView();
-            String text = f.getClass().getSimpleName() + " s:" + f.getStateMachine().getState() + " v:" + (f.getRootView().isAttached() && v.getVisibility() == VISIBLE && ViewHelper.getAlpha(v) > 0 ? "t" : "f") + " " + v.getWidth() + "x" + v.getHeight();
+            boolean visible = f.getRootView().isAttached() && v.getVisibility() == VISIBLE && ViewHelper.getAlpha(v) > 0;
+            String text = f.toString() + " s:" + f.getStateMachine().getState() + " v:" + (visible ? "t" : "f") + " " + v.getWidth() + "x" + v.getHeight();
             canvas.drawText(text, x, y, paint);
             y += step;
             y = drawManager(canvas, x + step, y, f);

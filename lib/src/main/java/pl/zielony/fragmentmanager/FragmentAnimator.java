@@ -7,6 +7,8 @@ import pl.zielony.animator.Animator;
  */
 
 public interface FragmentAnimator {
+    Class<? extends FragmentAnimator> EMPTY = EmptyFragmentAnimator.class;
+
     Animator animateAdd(Fragment fragment);
 
     Animator animateStart(Fragment fragment);

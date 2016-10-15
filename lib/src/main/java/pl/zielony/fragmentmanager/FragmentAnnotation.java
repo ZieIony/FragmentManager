@@ -17,7 +17,7 @@ public @interface FragmentAnnotation {
 
     int title() default 0;
 
-    boolean pooling() default true;
+    boolean pooling() default false;
 
-    Class animator() default DefaultFragmentAnimator.class;
+    Class<? extends FragmentAnimator> animator() default DefaultFragmentAnimator.class;
 }

@@ -1,18 +1,20 @@
 package pl.zielony.fragmentmanager;
 
 import android.app.Activity;
+import android.os.Bundle;
 
 /**
  * Created by Marcin on 2016-10-03.
  */
 
 public class FragmentManager extends ManagerBase {
-    public FragmentManager(Activity fragmentActivity) {
-        this.activity = fragmentActivity;
+    public FragmentManager(Activity activity, Bundle state) {
+        this.activity = activity;
+        this.userState = state;
         initStateMachineStates();
     }
 
-    protected void initStateMachineStates() {
+    private void initStateMachineStates() {
         StateMachine stateMachine = getStateMachine();
         stateMachine.addEdge(StateMachine.STATE_NEW, STATE_CREATED, new EdgeListener() {
             @Override
@@ -44,8 +46,7 @@ public class FragmentManager extends ManagerBase {
 
             @Override
             public void onStateChanged() {
-                onStart(fresh);
-                fresh = false;
+                onStart();
             }
         });
         stateMachine.addEdge(STATE_STARTED, STATE_RESUMED, new EdgeListener() {

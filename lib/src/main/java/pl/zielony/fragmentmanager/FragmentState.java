@@ -35,8 +35,8 @@ class FragmentState {
         if (fragment != null) {
             state = new Bundle();
             fragment.save(state);
-            bundle.putBundle(FRAGMENT, state);
         }
+        bundle.putBundle(FRAGMENT, state);
         return bundle;
     }
 
@@ -65,20 +65,6 @@ class FragmentState {
 
     public void clearFragment() {
         fragment = null;
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-
-        FragmentState that = (FragmentState) o;
-
-        if (layoutId != that.layoutId) return false;
-        if (fragmentClass != null ? !fragmentClass.equals(that.fragmentClass) : that.fragmentClass != null)
-            return false;
-        return tag != null ? tag.equals(that.tag) : that.tag == null;
-
     }
 
 }

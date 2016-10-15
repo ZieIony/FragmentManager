@@ -1,7 +1,9 @@
 package pl.zielony.fragmentmanager;
 
 import android.app.Activity;
+import android.content.Context;
 import android.content.Intent;
+import android.content.res.Resources;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -25,6 +27,7 @@ public abstract class ManagerBase {
     private static final String ACTIVE_STATES = ManagerBase.class.getName() + "fragmentManagerActiveStates";
     private static final String STATES = ManagerBase.class.getName() + "fragmentManagerStates";
     private static final String TRANSACTIONS = ManagerBase.class.getName() + "fragmentManagerTransactions";
+    static final String USER_STATE = ManagerBase.class.getName() + "userState";
 
     public static final int STATE_CREATED = 1;
     public static final int STATE_ATTACHED = 2;
@@ -34,14 +37,14 @@ public abstract class ManagerBase {
     List<FragmentTransaction> backstack = new ArrayList<>();
     List<FragmentState> activeStates = new ArrayList<>();
 
-    protected Activity activity;
+    Activity activity;
     private static Handler handler = new Handler(Looper.getMainLooper());
-    protected FragmentRootView rootView;
+    FragmentRootView rootView;
 
     private StateMachine stateMachine;
-    protected int desiredState;
+    int desiredState;
 
-    protected boolean fresh = true;
+    Bundle userState;
 
     public ManagerBase() {
         stateMachine = new StateMachine();
@@ -425,10 +428,14 @@ public abstract class ManagerBase {
     protected void onAttach() {
     }
 
-    protected void onStart(boolean freshStart) {
+    protected void onStart() {
     }
 
     protected void onResume() {
+    }
+
+    protected Bundle onSaveState() {
+        return null;
     }
 
     protected void onPause() {
@@ -538,7 +545,6 @@ public abstract class ManagerBase {
         }
         onDestroy();
         activity = null;
-        fresh = true;
         activeStates.clear();
         backstack.clear();
         stateMachine.resetState();
@@ -550,6 +556,18 @@ public abstract class ManagerBase {
 
     public Activity getActivity() {
         return activity;
+    }
+
+    public Context getContext(){
+        return activity.getApplicationContext();
+    }
+
+    public Resources getResources(){
+        return activity.getResources();
+    }
+
+    public Bundle getState() {
+        return userState;
     }
 
     @NonNull
@@ -580,6 +598,11 @@ public abstract class ManagerBase {
             activeStateIndices[i] = allStates.indexOf(activeStates.get(i));
         }
         state.putIntArray(ACTIVE_STATES, activeStateIndices);
+
+        userState = onSaveState();
+        state.putBundle(USER_STATE, userState != null ? userState : new Bundle());
+
+        Log.e("save", toString() + " transactions: " + transactionBundles.size() + ", states: " + stateBundles.size() + ", activeStates: " + activeStateIndices.length);
     }
 
     public void restore(Bundle state) {
@@ -606,6 +629,8 @@ public abstract class ManagerBase {
             transaction.restore(transactionBundle, allStates);
             backstack.add(transaction);
         }
+
+        Log.e("restore", toString() + " transactions: " + transactionBundles.size() + ", states: " + stateBundles.size() + ", activeStates: " + activeStateIndices.length);
     }
 
     public String getString(int resId) {

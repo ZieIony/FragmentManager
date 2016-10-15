@@ -9,10 +9,10 @@ import android.view.ViewGroup;
  * Created by Marcin on 2016-05-11.
  */
 public abstract class FragmentPagerAdapter extends PagerAdapter {
-    private FragmentManager fragmentManager;
+    private ManagerBase fragmentManager;
     private SparseArray<Fragment> fragments = new SparseArray<>();
 
-    public FragmentPagerAdapter(FragmentManager fragmentManager) {
+    public FragmentPagerAdapter(ManagerBase fragmentManager) {
         this.fragmentManager = fragmentManager;
     }
 

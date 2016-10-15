@@ -14,13 +14,13 @@ import pl.zielony.animator.AnimatorSet;
  * Created by Marcin on 2015-12-31.
  */
 public class FragmentTransaction {
-    private static final String CHANGES = "modes";
+    private static final String CHANGES = "changes";
     private static final String STATES = "states";
     private static final String MODE = "mode";
     private static final String SHARED_ELEMENTS = "sharedElements";
     private static final String SHARED_ELEMENT_CLASS = "sharedElementClass";
 
-    List<StateChange> changes = new ArrayList<>();
+    private List<StateChange> changes = new ArrayList<>();
     private List<SharedElement> sharedElements = new ArrayList<>();
     private ManagerBase manager;
     private TransactionMode mode;
@@ -82,7 +82,7 @@ public class FragmentTransaction {
                 StateChange backstackChange = transaction.changes.get(i);
                 FragmentState backstackState = backstackChange.getState();
 
-                if (newState.equals(backstackState)) {
+                if (newState == backstackState) {
                     Animator animator = manager.prepareRemoveAnimation(backstackState, backstackState.getFragment().animateStop());
                     if (animator != null)
                         animators.add(animator);
@@ -107,7 +107,7 @@ public class FragmentTransaction {
                 if (animator != null)
                     animators.add(animator);
             } else {
-                manager.startState(stateChange.getState(),stateChange.getChange());
+                manager.startState(stateChange.getState(), stateChange.getChange());
                 Animator animator = manager.prepareAddAnimation(stateChange.getState(), stateChange.getState().getFragment().animateStart());
                 if (animator != null)
                     animators.add(animator);
@@ -216,12 +216,7 @@ public class FragmentTransaction {
                 sharedElement = (SharedElement) Class.forName(className).newInstance();
                 sharedElement.restore(sharedElementBundle);
                 sharedElements.add(sharedElement);
-            } catch (InstantiationException e) {
-                e.printStackTrace();
-            } catch (IllegalAccessException e) {
-                e.printStackTrace();
-            } catch (ClassNotFoundException e) {
-                e.printStackTrace();
+            } catch (Exception e) {
             }
         }
     }
