@@ -64,6 +64,14 @@ public class FragmentActivity extends AppCompatActivity {
             fragmentManager.navigate(route);
     }
 
+    public void navigate(Fragment fragment, TransactionMode mode) {
+        navigate(new FragmentRoute(fragment, mode));
+    }
+
+    public void navigate(Class<? extends Fragment> klass, TransactionMode mode) {
+        navigate(new FragmentRoute(klass, mode));
+    }
+
     protected boolean onNavigate(Fragment fragment, TransactionMode mode) {
         return false;
     }

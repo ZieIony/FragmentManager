@@ -30,9 +30,9 @@ public class RedFragment extends Fragment {
             int[] colors = {Color.RED, Color.BLUE, Color.GRAY, Color.BLACK, Color.YELLOW, Color.GREEN};
             color = colors[new Random().nextInt(colors.length)];
             view.setBackgroundColor(color);
-        }else{
+        } else {
             color = getState().getInt(COLOR);
-            getView().setBackgroundColor(color);
+            view.setBackgroundColor(color);
         }
 
         final EditText et = (EditText) view.findViewById(R.id.et);

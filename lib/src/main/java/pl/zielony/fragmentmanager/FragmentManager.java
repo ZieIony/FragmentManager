@@ -3,6 +3,9 @@ package pl.zielony.fragmentmanager;
 import android.app.Activity;
 import android.os.Bundle;
 
+import pl.zielony.statemachine.EdgeListener;
+import pl.zielony.statemachine.StateMachine;
+
 /**
  * Created by Marcin on 2016-10-03.
  */

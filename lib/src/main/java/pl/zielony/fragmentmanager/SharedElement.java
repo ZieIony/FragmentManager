@@ -80,7 +80,7 @@ public abstract class SharedElement<FrameType extends KeyFrame, ViewType extends
         final ViewType viewTo = (ViewType) rootTo.findViewById(viewId);
         frameTo = setupFrame(viewTo, containerLocation);
 
-        Animator animator = start(viewFrom, viewTo);
+        Animator animator = start(viewTo);
         animator.addListener(new AnimatorListenerAdapter() {
             @Override
             public void onStart() {
@@ -108,7 +108,7 @@ public abstract class SharedElement<FrameType extends KeyFrame, ViewType extends
 
     protected abstract FrameType setupFrame(View view, int[] containerLocation);
 
-    private Animator start(final ViewType viewFrom, final ViewType viewTo) {
+    private Animator start(final ViewType viewTo) {
         this.view = viewTo;
         Animator animator = new Animator();
         animator.setDuration(duration);

@@ -170,7 +170,7 @@ public class FragmentRootView extends FrameLayout {
 
     @Override
     public void setVisibility(int visibility) {
-        throw new RuntimeException("FragmentRootView's visibility cannot be changed!");
+        throw new RuntimeException("FragmentRootView's visibility cannot be changed");
     }
 
     public LockListenerAdapter getLockListenerAdapter() {

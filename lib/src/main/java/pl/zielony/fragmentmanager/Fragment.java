@@ -13,12 +13,14 @@ import java.util.ArrayList;
 import java.util.List;
 
 import pl.zielony.animator.Animator;
+import pl.zielony.statemachine.EdgeListener;
+import pl.zielony.statemachine.StateMachine;
 
 /**
  * Created by Marcin on 2015-03-20.
  */
 public abstract class Fragment extends ManagerBase {
-    public static final String HIERARCHY_STATE = "hierarchyState";
+    private static final String HIERARCHY_STATE = "hierarchyState";
 
     private static final String TARGET = "target";
     private static final String ID = "id";
@@ -51,6 +53,7 @@ public abstract class Fragment extends ManagerBase {
                 try {
                     fragmentAnimator = animatorClass.getConstructor().newInstance();
                 } catch (Exception e) {
+                    throw new RuntimeException("Fragment animator has to have a zero-parameter constructor");
                 }
             }
         }
@@ -226,7 +229,7 @@ public abstract class Fragment extends ManagerBase {
         return fragmentAnimator == null ? null : fragmentAnimator.animateStart(this);
     }
 
-    protected void create(Activity activity, Bundle state) {
+    protected void create(Activity activity, Bundle userState) {
         this.activity = activity;
         id = idSequence++;
         if (rootView == null) {
@@ -255,7 +258,7 @@ public abstract class Fragment extends ManagerBase {
             getRootView().addView(view);
         }
 
-        this.userState = state;
+        this.userState = userState;
 
         getStateMachine().update();
     }
@@ -322,7 +325,7 @@ public abstract class Fragment extends ManagerBase {
             }
         }
 
-        fragment.create(activity, state);
+        fragment.create(activity, state != null ? state.getBundle(USER_STATE) : null);
 
         if (state != null)
             fragment.restore(state);

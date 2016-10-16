@@ -1,14 +1,12 @@
 package pl.zielony.fragmentmanager;
 
 import android.app.Activity;
-import android.content.Context;
 import android.content.Intent;
 import android.content.res.Resources;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.support.annotation.NonNull;
-import android.util.Log;
 import android.view.KeyEvent;
 import android.view.View;
 import android.view.ViewGroup;
@@ -18,6 +16,8 @@ import java.util.List;
 
 import pl.zielony.animator.Animator;
 import pl.zielony.animator.AnimatorListenerAdapter;
+import pl.zielony.statemachine.OnStateChangeListener;
+import pl.zielony.statemachine.StateMachine;
 
 /**
  * Created by Marcin on 2016-10-03.
@@ -216,7 +216,7 @@ public abstract class ManagerBase {
         Fragment fragment = state.getFragment();
         FragmentRootView rootView = fragment.getRootView();
         if (rootView.getParent() != null || fragment.getManager() != null)
-            throw new IllegalStateException("fragment (" + fragment.toString() + ") is already in use");
+            throw new IllegalStateException("Fragment (" + fragment.toString() + ") is already in use");
         final View view = fragment.getView();
         view.setVisibility(View.INVISIBLE);
         fragment.setManager(this);
@@ -302,7 +302,7 @@ public abstract class ManagerBase {
         final View rootView = fragment.getRootView();
         final ViewGroup container = (ViewGroup) rootView.getParent();
         if (container == null || !activeStates.contains(state))
-            throw new IllegalStateException("fragment's container has to be in use!");
+            throw new IllegalStateException("Fragment's container has to be in use");
         state.save();
         fragment.pause();
         fragment.stop();
@@ -400,6 +400,14 @@ public abstract class ManagerBase {
         }
     }
 
+    public void navigate(Fragment fragment, TransactionMode mode) {
+        navigate(new FragmentRoute(fragment, mode));
+    }
+
+    public void navigate(Class<? extends Fragment> klass, TransactionMode mode) {
+        navigate(new FragmentRoute(klass, mode));
+    }
+
     protected void onNewIntent(Intent intent) {
     }
 
@@ -451,7 +459,6 @@ public abstract class ManagerBase {
     }
 
     protected void create(Activity activity, Bundle state) {
-        Log.e("create", toString());
         this.activity = activity;
         stateMachine.update();
     }
@@ -459,7 +466,6 @@ public abstract class ManagerBase {
     public void start() {
         desiredState = STATE_STARTED;
         stateMachine.update();
-        Log.e("start", toString());
         synchronized (ManagerBase.class) {
             List<FragmentState> copy = new ArrayList<>(activeStates);
             for (FragmentState state : copy)
@@ -470,7 +476,6 @@ public abstract class ManagerBase {
     public void resume() {
         desiredState = STATE_RESUMED;
         stateMachine.update();
-        Log.e("resume", toString());
         synchronized (ManagerBase.class) {
             List<FragmentState> copy = new ArrayList<>(activeStates);
             for (FragmentState state : copy)
@@ -481,7 +486,6 @@ public abstract class ManagerBase {
     public void pause() {
         if (!isResumed())
             return;
-        Log.e("pause", toString());
         synchronized (ManagerBase.class) {
             List<FragmentState> copy = new ArrayList<>(activeStates);
             for (FragmentState state : copy)
@@ -494,7 +498,6 @@ public abstract class ManagerBase {
     public void stop() {
         if (!isStarted())
             return;
-        Log.e("stop", toString());
         synchronized (ManagerBase.class) {
             List<FragmentState> copy = new ArrayList<>(activeStates);
             for (FragmentState state : copy)
@@ -507,7 +510,6 @@ public abstract class ManagerBase {
     public void detach() {
         if (!isAttached())
             return;
-        Log.e("detach", toString());
         synchronized (ManagerBase.class) {
             List<FragmentState> copy = new ArrayList<>(activeStates);
             for (FragmentState state : copy)
@@ -537,7 +539,6 @@ public abstract class ManagerBase {
     public void destroy() {
         if (!isCreated())
             return;
-        Log.e("destroy", toString());
         synchronized (ManagerBase.class) {
             List<FragmentState> copy = new ArrayList<>(activeStates);
             for (FragmentState state : copy)
@@ -558,11 +559,7 @@ public abstract class ManagerBase {
         return activity;
     }
 
-    public Context getContext(){
-        return activity.getApplicationContext();
-    }
-
-    public Resources getResources(){
+    public Resources getResources() {
         return activity.getResources();
     }
 
@@ -601,8 +598,6 @@ public abstract class ManagerBase {
 
         userState = onSaveState();
         state.putBundle(USER_STATE, userState != null ? userState : new Bundle());
-
-        Log.e("save", toString() + " transactions: " + transactionBundles.size() + ", states: " + stateBundles.size() + ", activeStates: " + activeStateIndices.length);
     }
 
     public void restore(Bundle state) {
@@ -629,8 +624,6 @@ public abstract class ManagerBase {
             transaction.restore(transactionBundle, allStates);
             backstack.add(transaction);
         }
-
-        Log.e("restore", toString() + " transactions: " + transactionBundles.size() + ", states: " + stateBundles.size() + ", activeStates: " + activeStateIndices.length);
     }
 
     public String getString(int resId) {

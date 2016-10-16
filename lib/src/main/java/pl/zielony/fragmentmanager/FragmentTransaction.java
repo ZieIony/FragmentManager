@@ -9,6 +9,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import pl.zielony.animator.Animator;
 import pl.zielony.animator.AnimatorSet;
+import pl.zielony.statemachine.OnStateChangeListener;
 
 /**
  * Created by Marcin on 2015-12-31.
@@ -51,7 +52,7 @@ public class FragmentTransaction {
         List<Fragment> fragments = new ArrayList<>(manager.getFragments());
 
         if (mode == TransactionMode.Join && !manager.backstack.isEmpty())
-            removeJoinedFragments(animators);
+            removeJoinedFragments();
 
         manager.backstack.add(this);
         for (StateChange stateChange : changes) {
@@ -72,27 +73,25 @@ public class FragmentTransaction {
         runAnimations(animators, fragments, false);
     }
 
-    private void removeJoinedFragments(List<Animator> animators) {
+    private void removeJoinedFragments() {
+        List<FragmentTransaction> backstack = manager.backstack;
+
         for (StateChange newChange : changes) {
             FragmentState newState = newChange.getState();
 
-            FragmentTransaction transaction = manager.backstack.get(manager.backstack.size() - 1);
+            FragmentTransaction transaction = backstack.get(backstack.size() - 1);
+            List<StateChange> changes = transaction.changes;
 
-            for (int i = transaction.changes.size() - 1; i >= 0; i--) {
-                StateChange backstackChange = transaction.changes.get(i);
-                FragmentState backstackState = backstackChange.getState();
-
-                if (newState == backstackState) {
-                    Animator animator = manager.prepareRemoveAnimation(backstackState, backstackState.getFragment().animateStop());
-                    if (animator != null)
-                        animators.add(animator);
-
-                    transaction.changes.remove(i);
-                }
+            for (int i = changes.size() - 1; i >= 0; i--) {
+                if (newState == changes.get(i).getState())
+                    changes.remove(i);
             }
 
-            if (transaction.changes.isEmpty())
-                manager.backstack.remove(manager.backstack.size() - 1);
+            if (changes.isEmpty()) {
+                backstack.remove(backstack.size() - 1);
+                if(backstack.isEmpty())
+                    return;
+            }
         }
     }
 
