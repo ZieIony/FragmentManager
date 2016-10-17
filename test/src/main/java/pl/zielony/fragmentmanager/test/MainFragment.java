@@ -32,11 +32,8 @@ public class MainFragment extends Fragment {
         toolbar.getIconView().setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                if (getManager().hasUp()) {
-                    getManager().upTraverse();
-                } else {
+                if (!getManager().upTraverse())
                     getActivity().onBackPressed();
-                }
             }
         });
 

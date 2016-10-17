@@ -1,7 +1,6 @@
 package pl.zielony.fragmentmanager.test;
 
 import android.view.View;
-import android.widget.TextView;
 
 import pl.zielony.fragmentmanager.Fragment;
 import pl.zielony.fragmentmanager.FragmentAnnotation;
@@ -26,7 +25,7 @@ public class PerryListFragment extends Fragment {
                 FragmentTransaction transaction = new FragmentTransaction(getManager(), TransactionMode.Push);
                 transaction.replace(detailFragment, "container");
                 transaction.addSharedElement(new ViewSharedElement(findViewById(R.id.image), PerryListFragment.this, detailFragment));
-                transaction.addSharedElement(new TextViewSharedElement((TextView) findViewById(R.id.title), PerryListFragment.this, detailFragment));
+                transaction.addSharedElement(new TextViewSharedElement(findViewById(R.id.title), PerryListFragment.this, detailFragment));
                 transaction.execute();
             }
         });
