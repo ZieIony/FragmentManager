@@ -1,7 +1,6 @@
 package pl.zielony.fragmentmanager.test;
 
 import android.graphics.Color;
-import android.os.Bundle;
 import android.os.Parcelable;
 import android.util.SparseArray;
 import android.view.View;
@@ -12,6 +11,7 @@ import java.util.Random;
 import carbon.widget.TextView;
 import pl.zielony.fragmentmanager.Fragment;
 import pl.zielony.fragmentmanager.FragmentAnnotation;
+import pl.zielony.fragmentmanager.State;
 
 /**
  * Created by Marcin on 2015-12-08.
@@ -19,7 +19,7 @@ import pl.zielony.fragmentmanager.FragmentAnnotation;
 @FragmentAnnotation(layout = R.layout.fragment_red)
 public class RedFragment extends Fragment {
 
-    private static final String COLOR = "color";
+    @State
     private int color;
 
     @Override
@@ -28,11 +28,7 @@ public class RedFragment extends Fragment {
 
         if (getState() == null) {
             int[] colors = {Color.RED, Color.BLUE, Color.GRAY, Color.BLACK, Color.YELLOW, Color.GREEN};
-            color = colors[new Random().nextInt(colors.length)];
-            view.setBackgroundColor(color);
-        } else {
-            color = getState().getInt(COLOR);
-            view.setBackgroundColor(color);
+            setColor(colors[new Random().nextInt(colors.length)]);
         }
 
         final EditText et = (EditText) view.findViewById(R.id.et);
@@ -59,11 +55,8 @@ public class RedFragment extends Fragment {
         });
     }
 
-    @Override
-    protected Bundle onSaveState() {
-        Bundle state = new Bundle();
-        state.putInt(COLOR, color);
-        return state;
+    public void setColor(int color) {
+        this.color = color;
+        getView().setBackgroundColor(color);
     }
-
 }

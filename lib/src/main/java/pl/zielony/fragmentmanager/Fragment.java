@@ -9,6 +9,10 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 
+import java.io.Serializable;
+import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -25,6 +29,7 @@ public abstract class Fragment extends ManagerBase {
     private static final String TARGET = "target";
     private static final String ID = "id";
     private static final String TAG = "tag";
+    private static final String FIELDS = "fields";
 
     private static final int NO_TARGET = -1;
 
@@ -278,6 +283,7 @@ public abstract class Fragment extends ManagerBase {
             state.putInt(TARGET, target);
         state.putInt(ID, id);
         state.putString(TAG, tag);
+        state.putBundle(FIELDS, saveFields());
 
         SparseArray<Parcelable> container = new SparseArray<>();
         view.saveHierarchyState(container);
@@ -293,6 +299,8 @@ public abstract class Fragment extends ManagerBase {
         tag = state.getString(TAG);
 
         view.restoreHierarchyState(state.getSparseParcelableArray(HIERARCHY_STATE));
+
+        restoreFields(state.getBundle(FIELDS));
     }
 
     public void setPoolingEnabled(boolean pooling) {
@@ -346,6 +354,14 @@ public abstract class Fragment extends ManagerBase {
         results.append(target, result);
     }
 
+    public void setResult(String key, Serializable value) {
+        if (target == NO_TARGET)
+            return;
+        Bundle result = new Bundle();
+        result.putSerializable(key, value);
+        results.append(target, result);
+    }
+
     public int getId() {
         return id;
     }
@@ -385,5 +401,52 @@ public abstract class Fragment extends ManagerBase {
     @Override
     public String toString() {
         return getClass().getSimpleName() + ":" + hashCode() % 100 + " [id:" + id + ", tag:" + tag + "]";
+    }
+
+    private void restoreFields(Bundle state) {
+        if (state != null) {
+            Field[] fields = getClass().getDeclaredFields();
+            for (Field f : fields) {
+                State annotation = f.getAnnotation(State.class);
+                if (annotation != null) {
+                    String name = f.getName();
+                    Serializable value = state.getSerializable(name);
+                    try {
+                        Method m = getClass().getMethod("set" + name.substring(0, 1).toUpperCase() + name.substring(1), f.getType());
+                        m.setAccessible(true);
+                        m.invoke(this, value);
+                        continue;
+                    } catch (NoSuchMethodException e) {
+                        e.printStackTrace();
+                    } catch (InvocationTargetException e) {
+                        e.printStackTrace();
+                    } catch (IllegalAccessException e) {
+                        e.printStackTrace();
+                    }
+                    try {
+                        f.setAccessible(true);
+                        f.set(this, value);
+                    } catch (IllegalAccessException e) {
+                        e.printStackTrace();
+                    }
+                }
+            }
+        }
+    }
+
+    private Bundle saveFields() {
+        Bundle state = new Bundle();
+        Field[] fields = getClass().getDeclaredFields();
+        for (Field f : fields) {
+            if (f.getAnnotation(State.class) != null) {
+                try {
+                    f.setAccessible(true);
+                    state.putSerializable(f.getName(), (Serializable) f.get(this));
+                } catch (IllegalAccessException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+        return state;
     }
 }
