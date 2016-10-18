@@ -12,6 +12,20 @@ A fragment manager with several enchancements over the original one:
  - no need to call super.on\*() methods
  - passing data between fragments (like startActivityForResult())
  - custom animations for all state changes
+ - easy state saving for fields
+
+The lifecycle:
+
+ - create (fragment is ready to use)
+ - [restore] (only if state is not null)
+ - attach (fragment's view is attached and laid out)
+ - start (activity is started)
+ - resume (activity is resumed, fragment is not animating)
+ - save
+ - pause
+ - stop
+ - detach
+ - destroy
 
 ### A sample main fragment
 
@@ -101,3 +115,20 @@ Return data using *setResult()*
     bundle.putInt("data", data);
     setResult(bundle);
     getManager().back();
+
+### Save data using annotation
+
+Simple data can be automatically saved and restored using *@State* annotation.
+
+    @State
+    int data;
+    
+This annotation can use setters as well. Simply keep the good, old Java naming convention.
+
+    @State
+    String title;
+    
+    private void setTitle(String title){
+        this.title = title;
+        getToolbar().setTitle(title);
+    }
