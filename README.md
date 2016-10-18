@@ -17,7 +17,7 @@ A fragment manager with several enchancements over the original one:
 The lifecycle:
 
  - create (fragment is ready to use)
- - [restore] (only if state is not null)
+ - restore (only if state is not null)
  - attach (fragment's view is attached and laid out)
  - start (activity is started)
  - resume (activity is resumed, fragment is not animating)
