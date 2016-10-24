@@ -218,6 +218,47 @@ public abstract class Fragment extends ManagerBase {
         return result;
     }
 
+    public <Type> Type findViewOfType(Class<Type> type) {
+        ArrayList<ViewGroup> groups = new ArrayList<>();
+        groups.add(getRootView());
+
+        while (!groups.isEmpty()) {
+            ViewGroup group = groups.remove(0);
+
+            for (int i = 0; i < group.getChildCount(); ++i) {
+                View child = group.getChildAt(i);
+                if (child.getClass().equals(type))
+                    return (Type) child;
+
+                if (child instanceof ViewGroup)
+                    groups.add((ViewGroup) child);
+            }
+        }
+
+        return null;
+    }
+
+    public <Type> List<Type> findViewsOfType(Class<Type> type) {
+        ArrayList<Type> result = new ArrayList<>();
+        ArrayList<ViewGroup> groups = new ArrayList<>();
+        groups.add(getRootView());
+
+        while (!groups.isEmpty()) {
+            ViewGroup group = groups.remove(0);
+
+            for (int i = 0; i < group.getChildCount(); ++i) {
+                View child = group.getChildAt(i);
+                if (child.getClass().equals(type))
+                    result.add((Type) child);
+
+                if (child instanceof ViewGroup)
+                    groups.add((ViewGroup) child);
+            }
+        }
+
+        return result;
+    }
+
     public Animator animateAdd() {
         return fragmentAnimator == null ? null : fragmentAnimator.animateAdd(this);
     }

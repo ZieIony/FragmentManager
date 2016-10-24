@@ -53,7 +53,9 @@ public class FragmentActivity extends AppCompatActivity {
     }
 
     public void onUpPressed() {
-        fragmentManager.upTraverse();
+        if(fragmentManager.upTraverse())
+            return;
+        super.onBackPressed();
     }
 
     public void navigate(FragmentRoute route) {

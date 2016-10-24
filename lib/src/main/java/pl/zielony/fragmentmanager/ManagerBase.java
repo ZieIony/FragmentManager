@@ -27,7 +27,7 @@ public abstract class ManagerBase {
     private static final String ACTIVE_STATES = ManagerBase.class.getName() + "fragmentManagerActiveStates";
     private static final String STATES = ManagerBase.class.getName() + "fragmentManagerStates";
     private static final String TRANSACTIONS = ManagerBase.class.getName() + "fragmentManagerTransactions";
-    static final String USER_STATE = ManagerBase.class.getName() + "userState";
+    protected static final String USER_STATE = ManagerBase.class.getName() + "userState";
 
     public static final int STATE_CREATED = 1;
     public static final int STATE_ATTACHED = 2;
@@ -48,7 +48,6 @@ public abstract class ManagerBase {
 
     public ManagerBase() {
         stateMachine = new StateMachine();
-        //stateMachine.fragment = this;
     }
 
 
@@ -559,8 +558,20 @@ public abstract class ManagerBase {
         return activity;
     }
 
+    /**
+     * Useful when your activity is really an instance of FragmentActivity
+     * @return
+     */
+    public FragmentActivity getFragmentActivity(){
+        return (FragmentActivity) activity;
+    }
+
     public Resources getResources() {
         return activity.getResources();
+    }
+
+    public Object getSystemService(String serviceName){
+        return activity.getSystemService(serviceName);
     }
 
     public Bundle getState() {
