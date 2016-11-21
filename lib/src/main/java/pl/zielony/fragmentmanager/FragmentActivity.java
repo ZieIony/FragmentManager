@@ -1,13 +1,18 @@
 package pl.zielony.fragmentmanager;
 
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.support.annotation.LayoutRes;
+import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.v7.app.AppCompatActivity;
 import android.view.KeyEvent;
 import android.view.View;
 import android.view.ViewGroup;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Created by Marcin on 2016-05-11.
@@ -53,17 +58,22 @@ public class FragmentActivity extends AppCompatActivity {
     }
 
     public void onUpPressed() {
-        if(fragmentManager.upTraverse())
+        if (fragmentManager.upTraverse())
             return;
         super.onBackPressed();
     }
 
     public void navigate(FragmentRoute route) {
-        FragmentRoute.RouteStep step = route.removeStep();
+        FragmentRoute.Step step = route.getStep();
         if (step.fragment == null)
             step.fragment = Fragment.instantiate(step.klass, this, null);
-        if (onNavigate(step.fragment, step.mode) && route.length() > 0)
-            fragmentManager.navigate(route);
+        if (onNavigate(route)) {
+            if (route.length() == 0)
+                return;
+            if (fragmentManager.navigate(route))
+                return;
+        }
+        throw new RouteNotHandledException(route);
     }
 
     public void navigate(Fragment fragment, TransactionMode mode) {
@@ -74,7 +84,7 @@ public class FragmentActivity extends AppCompatActivity {
         navigate(new FragmentRoute(klass, mode));
     }
 
-    protected boolean onNavigate(Fragment fragment, TransactionMode mode) {
+    protected boolean onNavigate(FragmentRoute route) {
         return false;
     }
 
@@ -134,6 +144,21 @@ public class FragmentActivity extends AppCompatActivity {
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
         fragmentManager.dispatchActivityResult(requestCode, resultCode, data);
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        List<String> granted = new ArrayList<>();
+        List<String> rejected = new ArrayList<>();
+        for (int i = 0; i < permissions.length; i++) {
+            if (grantResults[i] == PackageManager.PERMISSION_GRANTED) {
+                granted.add(permissions[i]);
+            } else {
+                rejected.add(permissions[i]);
+            }
+        }
+        fragmentManager.dispatchRequestPermissionsResult(requestCode,granted,rejected);
     }
 
     @Override

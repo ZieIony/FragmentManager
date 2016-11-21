@@ -387,16 +387,19 @@ public abstract class ManagerBase {
         return null;
     }
 
-    public void navigate(FragmentRoute route) {
-        FragmentRoute.RouteStep step = route.removeStep();
+    public boolean navigate(FragmentRoute route) {
+        FragmentRoute.Step step = route.getStep();
         if (step.fragment == null)
             step.fragment = Fragment.instantiate(step.klass, activity, null);
-        for (FragmentState state : activeStates) {
-            if (state.getFragment().onNavigate(step.fragment, step.mode) && route.length() > 0) {
-                state.getFragment().navigate(route);
-                return;
+        if (onNavigate(route)) {
+            if (route.length() == 0)
+                return true;
+            for (FragmentState state : activeStates) {
+                if (state.getFragment().navigate(route))
+                    return true;
             }
         }
+        return false;
     }
 
     public void navigate(Fragment fragment, TransactionMode mode) {
@@ -407,10 +410,16 @@ public abstract class ManagerBase {
         navigate(new FragmentRoute(klass, mode));
     }
 
-    protected void onNewIntent(Intent intent) {
+    protected boolean onNewIntent(Intent intent) {
+        return false;
     }
 
-    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+    protected boolean onActivityResult(int requestCode, int resultCode, Intent data) {
+        return false;
+    }
+
+    protected boolean onRequestPermissionsResult(int requestCode, List<String> granted, List<String> rejected) {
+        return false;
     }
 
     public boolean dispatchKeyEvent(KeyEvent event) {
@@ -527,13 +536,25 @@ public abstract class ManagerBase {
     }
 
     public void dispatchActivityResult(int requestCode, int resultCode, Intent data) {
-        onActivityResult(requestCode, resultCode, data);
+        if (onActivityResult(requestCode, resultCode, data))
+            return;
         synchronized (ManagerBase.class) {
             List<FragmentState> copy = new ArrayList<>(activeStates);
             for (FragmentState state : copy)
                 state.getFragment().dispatchActivityResult(requestCode, resultCode, data);
         }
     }
+
+    public void dispatchRequestPermissionsResult(int requestCode, List<String> granted, List<String> rejected) {
+        if (onRequestPermissionsResult(requestCode, granted, rejected))
+            return;
+        synchronized (ManagerBase.class) {
+            List<FragmentState> copy = new ArrayList<>(activeStates);
+            for (FragmentState state : copy)
+                state.getFragment().dispatchRequestPermissionsResult(requestCode, granted, rejected);
+        }
+    }
+
 
     public void destroy() {
         if (!isCreated())
@@ -560,9 +581,10 @@ public abstract class ManagerBase {
 
     /**
      * Useful when your activity is really an instance of FragmentActivity
+     *
      * @return
      */
-    public FragmentActivity getFragmentActivity(){
+    public FragmentActivity getFragmentActivity() {
         return (FragmentActivity) activity;
     }
 
@@ -570,7 +592,7 @@ public abstract class ManagerBase {
         return activity.getResources();
     }
 
-    public Object getSystemService(String serviceName){
+    public Object getSystemService(String serviceName) {
         return activity.getSystemService(serviceName);
     }
 
@@ -649,7 +671,7 @@ public abstract class ManagerBase {
         stateMachine.setOnStateChangeListener(stateListener);
     }
 
-    public boolean onNavigate(Fragment fragment, TransactionMode mode) {
+    public boolean onNavigate(FragmentRoute route) {
         return false;
     }
 

@@ -2,8 +2,8 @@ package pl.zielony.fragmentmanager.test;
 
 import android.os.Bundle;
 
-import pl.zielony.fragmentmanager.Fragment;
 import pl.zielony.fragmentmanager.FragmentActivity;
+import pl.zielony.fragmentmanager.FragmentRoute;
 import pl.zielony.fragmentmanager.TransactionMode;
 
 public class MainActivity extends FragmentActivity {
@@ -20,8 +20,9 @@ public class MainActivity extends FragmentActivity {
     }
 
     @Override
-    protected boolean onNavigate(Fragment fragment, TransactionMode mode) {
-        getFragmentManager2().replace(fragment, R.id.root, mode);
+    protected boolean onNavigate(FragmentRoute route) {
+        FragmentRoute.Step step = route.removeStep();
+        getFragmentManager2().replace(step.getFragment(), R.id.root, step.getMode());
         return true;
     }
 

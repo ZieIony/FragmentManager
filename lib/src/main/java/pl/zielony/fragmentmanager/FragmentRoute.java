@@ -11,41 +11,65 @@ public class FragmentRoute {
         return fragments.size();
     }
 
-    static class RouteStep {
+    public static class Step {
         Class<? extends Fragment> klass;
         Fragment fragment;
         TransactionMode mode;
 
-        RouteStep(Class<? extends Fragment> klass, TransactionMode mode) {
+        Step(Class<? extends Fragment> klass, TransactionMode mode) {
             this.klass = klass;
             this.mode = mode;
         }
 
-        RouteStep(Fragment fragment, TransactionMode mode) {
+        Step(Fragment fragment, TransactionMode mode) {
             this.fragment = fragment;
             this.mode = mode;
         }
+
+        public Fragment getFragment() {
+            return fragment;
+        }
+
+        public TransactionMode getMode() {
+            return mode;
+        }
     }
 
-    private List<RouteStep> fragments = new ArrayList<>();
+    private List<Step> fragments = new ArrayList<>();
 
     public FragmentRoute(Class<? extends Fragment> klass, TransactionMode mode) {
-        fragments.add(new RouteStep(klass, mode));
+        fragments.add(new Step(klass, mode));
     }
 
     public FragmentRoute(Fragment fragment, TransactionMode mode) {
-        fragments.add(new RouteStep(fragment, mode));
+        fragments.add(new Step(fragment, mode));
     }
 
     public void addFragment(Class<? extends Fragment> klass, TransactionMode mode) {
-        fragments.add(new RouteStep(klass, mode));
+        fragments.add(new Step(klass, mode));
     }
 
     public void addFragment(Fragment fragment, TransactionMode mode) {
-        fragments.add(new RouteStep(fragment, mode));
+        fragments.add(new Step(fragment, mode));
     }
 
-    RouteStep removeStep() {
+    public Step getStep() {
+        return fragments.get(0);
+    }
+
+    public Step removeStep() {
         return fragments.remove(0);
+    }
+
+    @Override
+    public String toString() {
+        StringBuilder builder = new StringBuilder();
+        for (int i = 0; i < fragments.size(); i++) {
+            Step step = fragments.get(i);
+            builder.append(step.klass);
+            if (i != fragments.size() - 1)
+                builder.append(", ");
+        }
+        return builder.toString();
     }
 }
