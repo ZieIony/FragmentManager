@@ -568,7 +568,7 @@ public abstract class ManagerBase {
         activity = null;
         activeStates.clear();
         backstack.clear();
-        stateMachine.resetState();
+        stateMachine.reset();
     }
 
     public static Handler getHandler() {

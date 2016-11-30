@@ -2,6 +2,7 @@ package pl.zielony.fragmentmanager;
 
 import android.os.Bundle;
 import android.os.Handler;
+import android.support.annotation.NonNull;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -9,7 +10,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import pl.zielony.animator.Animator;
 import pl.zielony.animator.AnimatorSet;
-import pl.zielony.statemachine.OnStateChangeListener;
+
+import static android.view.View.NO_ID;
 
 /**
  * Created by Marcin on 2015-12-31.
@@ -89,7 +91,7 @@ public class FragmentTransaction {
 
             if (changes.isEmpty()) {
                 backstack.remove(backstack.size() - 1);
-                if(backstack.isEmpty())
+                if (backstack.isEmpty())
                     return;
             }
         }
@@ -131,15 +133,12 @@ public class FragmentTransaction {
                         FragmentTransaction.this.notify();
                 }
             } else {
-                f.setOnStateChangeListener(new OnStateChangeListener() {
-                    @Override
-                    public void onStateChange(int state) {
-                        if (f.isAttached()) {
-                            f.setOnStateChangeListener(null);
-                            synchronized (FragmentTransaction.this) {
-                                if (notAttachedFragments.decrementAndGet() == 0)
-                                    FragmentTransaction.this.notify();
-                            }
+                f.setOnStateChangeListener((state) -> {
+                    if (f.isAttached()) {
+                        f.setOnStateChangeListener(null);
+                        synchronized (FragmentTransaction.this) {
+                            if (notAttachedFragments.decrementAndGet() == 0)
+                                FragmentTransaction.this.notify();
                         }
                     }
                 });
@@ -154,15 +153,12 @@ public class FragmentTransaction {
                             FragmentTransaction.this.wait();
 
                         Handler handler = FragmentManager.getHandler();
-                        handler.post(new Runnable() {
-                            @Override
-                            public void run() {
-                                for (SharedElement e : sharedElements)
-                                    animators.add(e.start(fragments, reverse, manager.getRootView()));
-                                AnimatorSet set = new AnimatorSet();
-                                set.addAll(animators);
-                                set.start();
-                            }
+                        handler.post(() -> {
+                            for (SharedElement e : sharedElements)
+                                animators.add(e.start(fragments, reverse, manager.getRootView()));
+                            AnimatorSet set = new AnimatorSet();
+                            set.addAll(animators);
+                            set.start();
                         });
                     }
                 } catch (InterruptedException e) {
@@ -230,7 +226,7 @@ public class FragmentTransaction {
     }
 
     public <T extends Fragment> void add(T fragment, String tag) {
-        addStateChange(new FragmentState(fragment, 0, tag), StateChange.Change.Add);
+        addStateChange(new FragmentState(fragment, NO_ID, tag), StateChange.Change.Add);
     }
 
     public <T extends Fragment> void add(Class<T> fragmentClass, int id) {
@@ -240,7 +236,7 @@ public class FragmentTransaction {
 
     public <T extends Fragment> void add(Class<T> fragmentClass, String tag) {
         T fragment = Fragment.instantiate(fragmentClass, manager.getActivity(), null);
-        addStateChange(new FragmentState(fragment, 0, tag), StateChange.Change.Add);
+        addStateChange(new FragmentState(fragment, NO_ID, tag), StateChange.Change.Add);
     }
 
 
@@ -252,12 +248,12 @@ public class FragmentTransaction {
         replaceFragment(null, fragment, id, null);
     }
 
-    public <T extends Fragment> void replace(T fragment, String tag) {
-        replaceFragment(null, fragment, 0, tag);
+    public <T extends Fragment> void replace(T fragment, @NonNull String tag) {
+        replaceFragment(null, fragment, NO_ID, tag);
     }
 
     public <T extends Fragment, T2 extends Fragment> void replace(T2 removeFragment, T fragment) {
-        replaceFragment(removeFragment, fragment, 0, null);
+        replaceFragment(removeFragment, fragment, NO_ID, null);
     }
 
     public <T extends Fragment> void replace(Class<T> fragmentClass, int id) {
@@ -265,14 +261,14 @@ public class FragmentTransaction {
         replaceFragment(null, fragment, id, null);
     }
 
-    public <T extends Fragment> void replace(Class<T> fragmentClass, String tag) {
+    public <T extends Fragment> void replace(Class<T> fragmentClass, @NonNull String tag) {
         T fragment = Fragment.instantiate(fragmentClass, manager.getActivity(), null);
-        replaceFragment(null, fragment, 0, tag);
+        replaceFragment(null, fragment, NO_ID, tag);
     }
 
     public <T extends Fragment, T2 extends Fragment> void replace(T2 removeFragment, Class<T> fragmentClass) {
         T fragment = Fragment.instantiate(fragmentClass, manager.getActivity(), null);
-        replaceFragment(removeFragment, fragment, 0, null);
+        replaceFragment(removeFragment, fragment, NO_ID, null);
     }
 
     private void replaceFragment(Fragment removeFragment, Fragment fragment, int id, String tag) {
@@ -282,6 +278,11 @@ public class FragmentTransaction {
                 addStateChange(new FragmentState(fragment, id, tag), StateChange.Change.Add);
                 return;
             }
+        }
+        if (id != NO_ID) {
+            add(fragment, id);
+        } else if (tag != null) {
+            add(fragment, tag);
         }
     }
 
@@ -294,12 +295,12 @@ public class FragmentTransaction {
         removeFragment(null, id, null);
     }
 
-    public void remove(String tag) {
-        removeFragment(null, 0, tag);
+    public void remove(@NonNull String tag) {
+        removeFragment(null, NO_ID, tag);
     }
 
     public <T extends Fragment> void remove(T fragment) {
-        removeFragment(fragment, 0, null);
+        removeFragment(fragment, NO_ID, null);
     }
 
     private void removeFragment(Fragment removeFragment, int id, String tag) {
