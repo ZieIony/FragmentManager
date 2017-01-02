@@ -15,9 +15,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-/**
- * Created by Marcin on 2016-05-17.
- */
 public class FragmentRootView extends FrameLayout {
     private boolean locked = false;
     private Map<View, ViewDesc> sharedViews = new HashMap<>();

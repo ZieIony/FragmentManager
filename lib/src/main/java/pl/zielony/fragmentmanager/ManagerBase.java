@@ -406,6 +406,11 @@ public abstract class ManagerBase {
         navigate(new FragmentRoute(fragment, mode));
     }
 
+    public void navigate(Fragment fragment, TransactionMode mode, Fragment target) {
+        fragment.setTargetFragment(target);
+        navigate(new FragmentRoute(fragment, mode));
+    }
+
     public void navigate(Class<? extends Fragment> klass, TransactionMode mode) {
         navigate(new FragmentRoute(klass, mode));
     }

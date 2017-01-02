@@ -14,6 +14,7 @@ import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import pl.zielony.animator.Animator;
@@ -370,7 +371,12 @@ public abstract class Fragment extends ManagerBase {
 
     private void restoreFields(Bundle state) {
         if (state != null) {
-            Field[] fields = getClass().getDeclaredFields();
+            List<Field> fields = new ArrayList<>();
+            Class thisClass = getClass();
+            while (thisClass != Fragment.class) {
+                fields.addAll(Arrays.asList(thisClass.getDeclaredFields()));
+                thisClass = thisClass.getSuperclass();
+            }
             for (Field f : fields) {
                 State annotation = f.getAnnotation(State.class);
                 if (annotation != null) {
@@ -401,7 +407,12 @@ public abstract class Fragment extends ManagerBase {
 
     private Bundle saveFields() {
         Bundle state = new Bundle();
-        Field[] fields = getClass().getDeclaredFields();
+        List<Field> fields = new ArrayList<>();
+        Class thisClass = getClass();
+        while (thisClass != Fragment.class) {
+            fields.addAll(Arrays.asList(thisClass.getDeclaredFields()));
+            thisClass = thisClass.getSuperclass();
+        }
         for (Field f : fields) {
             if (f.getAnnotation(State.class) != null) {
                 try {
