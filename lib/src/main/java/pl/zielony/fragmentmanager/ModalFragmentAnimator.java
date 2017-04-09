@@ -5,11 +5,8 @@ import android.view.animation.AccelerateInterpolator;
 import android.view.animation.DecelerateInterpolator;
 import android.view.animation.Interpolator;
 
-import com.nineoldandroids.view.ViewHelper;
-
 import pl.zielony.animator.Animator;
 import pl.zielony.animator.AnimatorListenerAdapter;
-import pl.zielony.animator.UpdateListener;
 
 /**
  * Created by Marcin on 2016-07-07.
@@ -22,13 +19,10 @@ public class ModalFragmentAnimator implements FragmentAnimator {
 
     public Animator animateAdd(final Fragment fragment) {
         final View view = fragment.getView();
-        return new Animator(DEFAULT_DURATION, decelerateInterpolator, new UpdateListener() {
-            @Override
-            public void onUpdate(float interpolation) {
-                ViewHelper.setAlpha(view, interpolation);
-                float value = view.getHeight() * (1.0f - interpolation) / 2.0f;
-                ViewHelper.setTranslationY(view, value);
-            }
+        return new Animator(DEFAULT_DURATION, decelerateInterpolator, interpolation -> {
+            view.setAlpha(interpolation);
+            float value = view.getHeight() * (1.0f - interpolation) / 2.0f;
+            view.setTranslationY(value);
         });
     }
 
@@ -40,13 +34,10 @@ public class ModalFragmentAnimator implements FragmentAnimator {
 
     public Animator animateRemove(final Fragment fragment) {
         final View view = fragment.getView();
-        return new Animator(DEFAULT_DURATION, accelerateInterpolator, new UpdateListener() {
-            @Override
-            public void onUpdate(float interpolation) {
-                ViewHelper.setAlpha(view, 1 - interpolation);
-                float value = view.getHeight() * interpolation / 2.0f;
-                ViewHelper.setTranslationY(view, value);
-            }
+        return new Animator(DEFAULT_DURATION, accelerateInterpolator, interpolation -> {
+            view.setAlpha(1 - interpolation);
+            float value = view.getHeight() * interpolation / 2.0f;
+            view.setTranslationY(value);
         });
     }
 
@@ -57,8 +48,8 @@ public class ModalFragmentAnimator implements FragmentAnimator {
         animator.addListener(new AnimatorListenerAdapter() {
             @Override
             public void onStart() {
-                ViewHelper.setAlpha(view, 1);
-                ViewHelper.setTranslationY(view, 0);
+                view.setAlpha(1);
+                view.setTranslationY(0);
             }
         });
         return animator;

@@ -6,7 +6,9 @@ import android.content.res.Resources;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.support.annotation.DimenRes;
 import android.support.annotation.NonNull;
+import android.support.annotation.StringRes;
 import android.view.KeyEvent;
 import android.view.View;
 import android.view.ViewGroup;
@@ -16,7 +18,6 @@ import java.util.List;
 
 import pl.zielony.animator.Animator;
 import pl.zielony.animator.AnimatorListenerAdapter;
-import pl.zielony.statemachine.OnStateChangeListener;
 import pl.zielony.statemachine.StateMachine;
 
 /**
@@ -43,6 +44,7 @@ public abstract class ManagerBase {
 
     private StateMachine stateMachine;
     int desiredState;
+    List<OnFragmentStateChangedListener> fragmentStateChangedListener = new ArrayList<>();
 
     Bundle userState;
 
@@ -564,12 +566,15 @@ public abstract class ManagerBase {
     public void destroy() {
         if (!isCreated())
             return;
+
+        desiredState = StateMachine.STATE_NEW;
+        stateMachine.update();
+
         synchronized (ManagerBase.class) {
             List<FragmentState> copy = new ArrayList<>(activeStates);
             for (FragmentState state : copy)
                 state.getFragment().destroy();
         }
-        onDestroy();
         activity = null;
         activeStates.clear();
         backstack.clear();
@@ -664,16 +669,37 @@ public abstract class ManagerBase {
         }
     }
 
-    public String getString(int resId) {
-        return activity.getString(resId);
+    @NonNull
+    public String getString(@StringRes int id) throws Resources.NotFoundException {
+        return activity.getResources().getString(id);
+    }
+
+    public float getDimension(@DimenRes int id) throws Resources.NotFoundException {
+        return activity.getResources().getDimension(id);
+    }
+
+    public int getDimensionPixelOffset(@DimenRes int id) throws Resources.NotFoundException {
+        return activity.getResources().getDimensionPixelOffset(id);
+    }
+
+    public int getDimensionPixelSize(@DimenRes int id) throws Resources.NotFoundException {
+        return activity.getResources().getDimensionPixelSize(id);
     }
 
     public String getString(int resId, Object... args) {
         return activity.getString(resId, args);
     }
 
-    public void setOnStateChangeListener(OnStateChangeListener stateListener) {
-        stateMachine.setOnStateChangeListener(stateListener);
+    public void addOnFragmentStateChangedListener(OnFragmentStateChangedListener listener) {
+        fragmentStateChangedListener.add(listener);
+    }
+
+    public void removeOnFragmentStateChangedListener(OnFragmentStateChangedListener listener) {
+        fragmentStateChangedListener.remove(listener);
+    }
+
+    public void clearOnFragmentStateChangedListeners() {
+        fragmentStateChangedListener.clear();
     }
 
     public boolean onNavigate(FragmentRoute route) {

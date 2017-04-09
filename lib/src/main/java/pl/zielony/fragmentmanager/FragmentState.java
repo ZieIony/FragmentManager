@@ -67,4 +67,14 @@ class FragmentState {
         fragment = null;
     }
 
+    @Override
+    public String toString() {
+        return "FragmentState{" +
+                "fragmentClass=" + fragmentClass +
+                ", fragment=" + fragment +
+                ", layoutId=" + layoutId +
+                ", tag='" + tag + '\'' +
+                ", state=" + state +
+                '}';
+    }
 }

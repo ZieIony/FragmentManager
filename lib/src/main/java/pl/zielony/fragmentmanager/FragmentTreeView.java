@@ -10,8 +10,6 @@ import android.util.AttributeSet;
 import android.util.Log;
 import android.view.View;
 
-import com.nineoldandroids.view.ViewHelper;
-
 import java.util.List;
 
 /**
@@ -62,7 +60,7 @@ public class FragmentTreeView extends View {
         List<Fragment> fragments = manager.getFragments();
         for (Fragment f : fragments) {
             View v = f.getView();
-            boolean visible = f.getRootView().isAttached() && v.getVisibility() == VISIBLE && ViewHelper.getAlpha(v) > 0;
+            boolean visible = f.getRootView().isAttached() && v.getVisibility() == VISIBLE && v.getAlpha() > 0;
             String text = f.toString() + " s:" + f.getStateMachine().getState() + " v:" + (visible ? "t" : "f") + " " + v.getWidth() + "x" + v.getHeight();
             canvas.drawText(text, x, y, paint);
             y += step;

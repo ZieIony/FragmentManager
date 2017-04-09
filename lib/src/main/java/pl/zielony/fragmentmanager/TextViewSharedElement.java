@@ -1,10 +1,9 @@
 package pl.zielony.fragmentmanager;
 
+import android.animation.ArgbEvaluator;
 import android.util.TypedValue;
 import android.view.View;
 import android.widget.TextView;
-
-import com.nineoldandroids.animation.ArgbEvaluator;
 
 /**
  * Created by Marcin on 2016-08-08.

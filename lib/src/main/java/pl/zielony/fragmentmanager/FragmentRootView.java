@@ -173,4 +173,29 @@ public class FragmentRootView extends FrameLayout {
     public LockListenerAdapter getLockListenerAdapter() {
         return lockListenerAdapter;
     }
+
+    public void enterAnimationMode() {
+        if (getChildCount() == 0)
+            return;
+        View fragmentView = getChildAt(0);
+        if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.GINGERBREAD_MR1) {
+            fragmentView.setDrawingCacheEnabled(true);
+        } else {
+            fragmentView.setLayerType(View.LAYER_TYPE_HARDWARE, null);
+        }
+        setLocked(true);
+    }
+
+    public void leaveAnimationMode() {
+        if (getChildCount() == 0)
+            return;
+        View fragmentView = getChildAt(0);
+        if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.GINGERBREAD_MR1) {
+            fragmentView.setDrawingCacheEnabled(false);
+        } else {
+            fragmentView.setLayerType(View.LAYER_TYPE_NONE, null);
+        }
+        setLocked(false);
+    }
+
 }

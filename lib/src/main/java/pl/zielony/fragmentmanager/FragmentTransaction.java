@@ -123,34 +123,37 @@ public class FragmentTransaction {
     private void runAnimations(final List<Animator> animators, final List<Fragment> fragments, final boolean reverse) {
         final AtomicInteger notAttachedFragments = new AtomicInteger();
 
-        notAttachedFragments.set(manager.getFragments().size());
+        notAttachedFragments.set(fragments.size());
 
-        for (final Fragment f : manager.getFragments()) {
-            if (f.isAttached()) {
-                f.setOnStateChangeListener(null);
+        OnFragmentStateChangedListener listener = new OnFragmentStateChangedAdapter() {
+            @Override
+            public void onAttachedChanged(boolean attached) {
                 synchronized (FragmentTransaction.this) {
-                    if (notAttachedFragments.decrementAndGet() == 0)
+                    if (notAttachedFragments.get() == 0)
                         FragmentTransaction.this.notify();
                 }
-            } else {
-                f.setOnStateChangeListener((state) -> {
-                    if (f.isAttached()) {
-                        f.setOnStateChangeListener(null);
-                        synchronized (FragmentTransaction.this) {
-                            if (notAttachedFragments.decrementAndGet() == 0)
-                                FragmentTransaction.this.notify();
-                        }
-                    }
-                });
             }
-        }
+        };
+        for (Fragment f : fragments)
+            f.addOnFragmentStateChangedListener(listener);
 
         new Thread() {
             public void run() {
                 try {
                     synchronized (FragmentTransaction.this) {
-                        if (notAttachedFragments.get() > 0)
-                            FragmentTransaction.this.wait();
+                        boolean notAttached = false;
+                        do {
+                            for (Fragment f : fragments) {
+                                if (!f.isAttached()) {
+                                    notAttached = true;
+                                    break;
+                                }
+                            }
+                            if (notAttached)
+                                FragmentTransaction.this.wait();
+                        } while (notAttached);
+                        for (Fragment f : fragments)
+                            f.removeOnFragmentStateChangedListener(listener);
 
                         Handler handler = FragmentManager.getHandler();
                         handler.post(() -> {

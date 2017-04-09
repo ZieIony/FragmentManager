@@ -15,7 +15,7 @@
         android:id="@+id/below"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:background="@color/carbon_bluegrey_700">
+        android:background="@color/carbon_blueGrey_700">
 
         <carbon.widget.TextView
             android:layout_width="match_parent"

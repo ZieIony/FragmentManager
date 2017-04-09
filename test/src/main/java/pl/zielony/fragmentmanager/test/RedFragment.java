@@ -8,7 +8,12 @@ import android.widget.EditText;
 
 import java.util.Random;
 
+import carbon.Carbon;
+import carbon.widget.FrameLayout;
 import carbon.widget.TextView;
+import pl.zielony.animator.Animator;
+import pl.zielony.animator.UpdateListener;
+import pl.zielony.fragmentmanager.DefaultFragmentAnimator;
 import pl.zielony.fragmentmanager.Fragment;
 import pl.zielony.fragmentmanager.FragmentAnnotation;
 import pl.zielony.fragmentmanager.State;
@@ -53,10 +58,39 @@ public class RedFragment extends Fragment {
                 getRootView().restoreHierarchyState(container);
             }
         });
+
+        setAnimator(new DefaultFragmentAnimator() {
+            @Override
+            public Animator animateAdd(Fragment fragment) {
+                FrameLayout frame = (FrameLayout) fragment.getView().findViewById(R.id.frame);
+                Carbon.setDefaultRevealDuration(5000);
+                frame.startReveal(frame.getWidth() - 10, 10, 0, 1000);
+                return new Animator(5000, new UpdateListener() {
+                    @Override
+                    public void onUpdate(float interpolation) {
+
+                    }
+                });
+            }
+
+            @Override
+            public Animator animateRemove(Fragment fragment) {
+                FrameLayout frame = (FrameLayout) fragment.getView().findViewById(R.id.frame);
+                Carbon.setDefaultRevealDuration(5000);
+                frame.startReveal(frame.getWidth() - 10, 10, 1000, 0);
+                return new Animator(5000, new UpdateListener() {
+                    @Override
+                    public void onUpdate(float interpolation) {
+
+                    }
+                });
+            }
+        });
     }
 
     public void setColor(int color) {
         this.color = color;
-        getView().setBackgroundColor(color);
+      //  getView().setBackgroundColor(color);
+        getView().setBackgroundDrawable(null);
     }
 }

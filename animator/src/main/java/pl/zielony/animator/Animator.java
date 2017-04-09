@@ -87,6 +87,8 @@ public class Animator {
         synchronized (Animator.this) {
             startTime = System.currentTimeMillis() + delay;
             running = true;
+            if (updateListener != null)
+                updateListener.onUpdate(0);
             handler.postDelayed(startRunnable, delay);
         }
     }
@@ -125,5 +127,9 @@ public class Animator {
 
     public void removeListener(AnimatorListenerAdapter listener) {
         listeners.remove(listener);
+    }
+
+    public void clearListeners() {
+        listeners.clear();
     }
 }

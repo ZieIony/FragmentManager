@@ -1,46 +1,59 @@
 <?xml version="1.0" encoding="utf-8"?>
-<carbon.widget.LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-                            android:layout_width="match_parent"
-                            android:layout_height="match_parent"
-                            android:background="#ffff7f7f"
-                            android:orientation="vertical">
+<pl.zielony.fragmentmanager.test.LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
 
-    <carbon.widget.EditText
-        android:id="@+id/et"
+    <carbon.widget.FrameLayout
+        android:id="@+id/frame"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"/>
+        android:layout_height="match_parent">
 
-    <carbon.widget.TextView
-        android:freezesText="true"
-        android:id="@+id/copy"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"/>
+        <carbon.widget.LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="#ffff7f7f"
+            android:orientation="vertical">
 
-    <carbon.widget.Button
-        android:id="@+id/save"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_margin="@dimen/carbon_marginHalf"
-        android:text="save"/>
 
-    <carbon.widget.Button
-        android:id="@+id/clear"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_margin="@dimen/carbon_marginHalf"
-        android:text="clear"/>
+            <carbon.widget.EditText
+                android:id="@+id/et"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content" />
 
-    <carbon.widget.Button
-        android:id="@+id/restore"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_margin="@dimen/carbon_marginHalf"
-        android:text="restore"/>
+            <carbon.widget.TextView
+                android:id="@+id/copy"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:freezesText="true" />
 
-    <carbon.widget.CardView
-        style="@style/carbon_CardView"
-        android:layout_width="200dp"
-        android:layout_height="200dp"
-        android:layout_margin="16dp"
-        android:background="@color/carbon_white"/>
-</carbon.widget.LinearLayout>
+            <carbon.widget.Button
+                android:id="@+id/save"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_margin="@dimen/carbon_marginHalf"
+                android:text="save" />
+
+            <carbon.widget.Button
+                android:id="@+id/clear"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_margin="@dimen/carbon_marginHalf"
+                android:text="clear" />
+
+            <carbon.widget.Button
+                android:id="@+id/restore"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_margin="@dimen/carbon_marginHalf"
+                android:text="restore" />
+
+            <carbon.widget.FrameLayout
+                style="@style/carbon_CardView"
+                android:layout_width="200dp"
+                android:layout_height="200dp"
+                android:layout_margin="16dp"
+                android:background="@color/carbon_white" />
+        </carbon.widget.LinearLayout>
+    </carbon.widget.FrameLayout>
+
+</pl.zielony.fragmentmanager.test.LinearLayout>

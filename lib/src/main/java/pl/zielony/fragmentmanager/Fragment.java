@@ -64,13 +64,46 @@ public abstract class Fragment extends ManagerBase {
         }
 
         StateMachine stateMachine = getStateMachine();
-        stateMachine.addEdge(StateMachine.STATE_NEW, STATE_CREATED, () -> view != null, this::onCreate);
-        stateMachine.addEdge(STATE_CREATED, STATE_ATTACHED, () -> getRootView().isAttached(), this::onAttach);
-        stateMachine.addEdge(STATE_ATTACHED, STATE_STARTED, () -> desiredState == STATE_STARTED || desiredState == STATE_RESUMED, this::onStart);
-        stateMachine.addEdge(STATE_STARTED, STATE_RESUMED, () -> desiredState == STATE_RESUMED, this::onResume);
-        stateMachine.addEdge(STATE_RESUMED, STATE_STARTED, () -> desiredState == STATE_STARTED, this::onPause);
-        stateMachine.addEdge(STATE_STARTED, STATE_ATTACHED, () -> desiredState == STATE_ATTACHED, this::onStop);
-        stateMachine.addEdge(STATE_ATTACHED, STATE_CREATED, () -> !getRootView().isAttached(), this::onDetach);
+        stateMachine.addEdge(StateMachine.STATE_NEW, STATE_CREATED, () -> activity != null, __ -> {
+            onCreate();
+            for (OnFragmentStateChangedListener listener : fragmentStateChangedListener)
+                listener.onCreateChanged(true);
+        });
+        stateMachine.addEdge(STATE_CREATED, STATE_ATTACHED, () -> getRootView().isAttached(), __ -> {
+            onAttach();
+            for (OnFragmentStateChangedListener listener : fragmentStateChangedListener)
+                listener.onAttachedChanged(true);
+        });
+        stateMachine.addEdge(STATE_ATTACHED, STATE_STARTED, () -> desiredState == STATE_STARTED || desiredState == STATE_RESUMED, __ -> {
+            onStart();
+            for (OnFragmentStateChangedListener listener : fragmentStateChangedListener)
+                listener.onStartedChanged(true);
+        });
+        stateMachine.addEdge(STATE_STARTED, STATE_RESUMED, () -> desiredState == STATE_RESUMED, __ -> {
+            onResume();
+            for (OnFragmentStateChangedListener listener : fragmentStateChangedListener)
+                listener.onResumedChanged(true);
+        });
+        stateMachine.addEdge(STATE_RESUMED, STATE_STARTED, () -> desiredState == STATE_STARTED, __ -> {
+            onPause();
+            for (OnFragmentStateChangedListener listener : fragmentStateChangedListener)
+                listener.onResumedChanged(false);
+        });
+        stateMachine.addEdge(STATE_STARTED, STATE_ATTACHED, () -> desiredState == STATE_ATTACHED, __ -> {
+            onStop();
+            for (OnFragmentStateChangedListener listener : fragmentStateChangedListener)
+                listener.onStartedChanged(false);
+        });
+        stateMachine.addEdge(STATE_ATTACHED, STATE_CREATED, () -> !getRootView().isAttached(), __ -> {
+            onDetach();
+            for (OnFragmentStateChangedListener listener : fragmentStateChangedListener)
+                listener.onAttachedChanged(false);
+        });
+        stateMachine.addEdge(STATE_CREATED, StateMachine.STATE_NEW, () -> activity == null, __ -> {
+            onDestroy();
+            for (OnFragmentStateChangedListener listener : fragmentStateChangedListener)
+                listener.onCreateChanged(false);
+        });
     }
 
     protected View onCreateView() {
@@ -238,9 +271,11 @@ public abstract class Fragment extends ManagerBase {
     public void destroy() {
         if (!isCreated())
             return;
+
+        super.destroy();
+
         id = -1;
         manager = null;
-        super.destroy();
     }
 
     public void save(Bundle state) {

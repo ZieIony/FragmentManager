@@ -5,11 +5,8 @@ import android.view.animation.AccelerateInterpolator;
 import android.view.animation.DecelerateInterpolator;
 import android.view.animation.Interpolator;
 
-import com.nineoldandroids.view.ViewHelper;
-
 import pl.zielony.animator.Animator;
 import pl.zielony.animator.AnimatorListenerAdapter;
-import pl.zielony.animator.UpdateListener;
 
 /**
  * Created by Marcin on 2016-07-07.
@@ -22,14 +19,11 @@ public class DefaultFragmentAnimator implements FragmentAnimator {
 
     public Animator animateAdd(final Fragment fragment) {
         final View view = fragment.getView();
-        return new Animator(DEFAULT_DURATION, decelerateInterpolator, new UpdateListener() {
-            @Override
-            public void onUpdate(float interpolation) {
-                ViewHelper.setAlpha(view, interpolation);
-                float value = 1.2f - 0.2f * interpolation;
-                ViewHelper.setScaleX(view, value);
-                ViewHelper.setScaleY(view, value);
-            }
+        return new Animator(DEFAULT_DURATION, decelerateInterpolator, interpolation -> {
+            view.setAlpha(interpolation);
+            float value = 1.2f - 0.2f * interpolation;
+            view.setScaleX(value);
+            view.setScaleY(value);
         });
     }
 
@@ -41,14 +35,11 @@ public class DefaultFragmentAnimator implements FragmentAnimator {
 
     public Animator animateRemove(final Fragment fragment) {
         final View view = fragment.getView();
-        return new Animator(DEFAULT_DURATION, accelerateInterpolator, new UpdateListener() {
-            @Override
-            public void onUpdate(float interpolation) {
-                ViewHelper.setAlpha(view, 1 - interpolation);
-                float value = 1.0f + 0.2f * interpolation;
-                ViewHelper.setScaleX(view, value);
-                ViewHelper.setScaleY(view, value);
-            }
+        return new Animator(DEFAULT_DURATION, accelerateInterpolator, interpolation -> {
+            view.setAlpha(1 - interpolation);
+            float value = 1.0f + 0.2f * interpolation;
+            view.setScaleX(value);
+            view.setScaleY(value);
         });
     }
 
@@ -59,9 +50,9 @@ public class DefaultFragmentAnimator implements FragmentAnimator {
         animator.addListener(new AnimatorListenerAdapter() {
             @Override
             public void onStart() {
-                ViewHelper.setAlpha(view, 1);
-                ViewHelper.setScaleX(view, 1);
-                ViewHelper.setScaleY(view, 1);
+                view.setAlpha(1);
+                view.setScaleX(1);
+                view.setScaleY(1);
             }
         });
         return animator;
